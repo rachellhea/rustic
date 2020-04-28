@@ -5,6 +5,7 @@ pub struct Bus {
 }
 
 impl Bus {
+	#[allow(dead_code)]
 	pub fn new() -> Bus {
 		Bus {
 			ram: [0x0000; RAM_SIZE],

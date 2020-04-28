@@ -20,6 +20,7 @@ pub struct Instruction<'a> {
 	pub address_mode: Box<dyn FnOnce(&mut CPU<'a>) -> u8>,
 }
 
+#[allow(dead_code)]
 /// The set of flags which are used to compose the status code bitmask on the CPU.
 /// The status code bitmask is updated after every instruction, and thus the bitmask can be used
 /// to inform future instructions about prior results, or to control various aspects of functionality,

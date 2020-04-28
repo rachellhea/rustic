@@ -1,6 +1,7 @@
 use crate::bus::Bus;
 use crate::model::{Instruction, StatusFlag};
 
+#[allow(dead_code)]
 /// Core data structure for emulating a 6502 CPU.
 pub struct CPU<'a> {
 	/// A hook to the bus, which serves as our interface through which we can read from and write to
@@ -35,6 +36,7 @@ pub struct CPU<'a> {
 }
 
 impl<'a> CPU<'a> {
+	#[allow(dead_code)]
 	/// Construct a new CPU instance with the given Bus hook.
 	pub fn new(bus: &'a mut Bus) -> CPU<'a> {
 		CPU {
@@ -53,6 +55,7 @@ impl<'a> CPU<'a> {
 		}
 	}
 
+	#[allow(dead_code)]
 	/// Iterate forward one clock cycle. Accept the input associated with that clock
 	/// cycle and act on it.
 	pub fn clock(&mut self) {
@@ -75,6 +78,7 @@ impl<'a> CPU<'a> {
 		self.cycles -= 1;
 	}
 
+	#[allow(dead_code)]
 	/// Request an interrupt. This can be ignored if the I flag on the status code is set.
 	pub fn interrupt(&mut self) {
 		if self.get_status_flag(StatusFlag::I) {
@@ -99,6 +103,7 @@ impl<'a> CPU<'a> {
 		self.cycles = 7;
 	}
 
+	#[allow(dead_code)]
 	/// Demand an interrupt. This one cannot be ignored.
 	/// This code is *mostly* equivalent to irq, with the only difference being the address
 	/// that we read to determine the value for the program counter.
@@ -121,6 +126,7 @@ impl<'a> CPU<'a> {
 		self.cycles = 7;
 	}
 
+	#[allow(dead_code)]
 	/// Reset the CPU to a known state:
 	/// 	- All registers (A, X, Y, and M) are set to 0
 	/// 	- The stack pointer is set to address 0x00FD
@@ -146,6 +152,7 @@ impl<'a> CPU<'a> {
 		self.cycles = 8;
 	}
 
+	#[allow(dead_code)]
 	/// Fetch the data at the currently specified address and save it into the M register.
 	/// Strictly speaking, this does not need to return a value. But it's easy, and potentially
 	/// convenient.
