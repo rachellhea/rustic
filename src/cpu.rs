@@ -35,7 +35,7 @@ pub struct CPU<'a> {
 }
 
 impl<'a> CPU<'a> {
-	/// Construct a new CPU instance. All values are initialized to 0 or None.
+	/// Construct a new CPU instance with the given Bus hook.
 	pub fn new(bus: &'a mut Bus) -> CPU<'a> {
 		CPU {
 			bus: 		Some(bus),
@@ -68,6 +68,87 @@ impl<'a> CPU<'a> {
 		};
 
 		self.cycles -= 1;
+	}
+
+	/// Request an interrupt. This can be ignored if the I flag on the status code is set.
+	pub fn interrupt(&mut self) {
+		if self.get_status_flag(StatusFlag::I) {
+			return;
+		}
+
+		self.write(0x0100 + self.stk_ptr as u16, (self.p_ctr >> 8) as u8 & 0x00FF);
+		self.stk_ptr -= 1;
+		self.write(0x0100 + self.stk_ptr as u16, self.p_ctr as u8 & 0x00FF);
+		self.stk_ptr -= 1;
+
+		self.set_status_flag(StatusFlag::B, false);
+		self.set_status_flag(StatusFlag::U, true);
+		self.set_status_flag(StatusFlag::I, true);
+		self.write(0x0100 + self.stk_ptr as u16, self.stat);
+		self.stk_ptr -= 1;
+		self.addr = 0xFFFE;
+
+		let lo: u16 = self.read(self.addr) as u16;
+		let hi: u16 = self.read(self.addr) as u16;
+		self.p_ctr = (hi << 8) | lo;
+		self.cycles = 7;
+	}
+
+	/// Demand an interrupt. This one cannot be ignored.
+	/// This code is *mostly* equivalent to irq, with the only difference being the address
+	/// that we read to determine the value for the program counter.
+	pub fn interrupt_no_mask(&mut self) {
+		self.write(0x0100 + self.stk_ptr as u16, (self.p_ctr >> 8) as u8 & 0x00FF);
+		self.stk_ptr -= 1;
+		self.write(0x0100 + self.stk_ptr as u16, self.p_ctr as u8 & 0x00FF);
+		self.stk_ptr -= 1;
+
+		self.set_status_flag(StatusFlag::B, false);
+		self.set_status_flag(StatusFlag::U, true);
+		self.set_status_flag(StatusFlag::I, true);
+		self.write(0x0100 + self.stk_ptr as u16, self.stat);
+		self.stk_ptr -= 1;
+		self.addr = 0xFFFA;
+
+		let lo: u16 = self.read(self.addr) as u16;
+		let hi: u16 = self.read(self.addr) as u16;
+		self.p_ctr = (hi << 8) | lo;
+		self.cycles = 7;
+	}
+
+	/// Reset the CPU to a known state:
+	/// 	- All registers (A, X, Y, and M) are set to 0
+	/// 	- The stack pointer is set to address 0x00FD
+	/// 	- The status code is set to 00100000 (Unused)
+	/// 	- The program counter is set to the value at address 0xFFFD | 0xFFFC
+	/// 	- The absolute and relative addresses are set to 0
+	/// 	- The cycle count is set to 8 (because this operation takes time)
+	pub fn reset(&mut self) {
+		self.a = 0x00;
+		self.x = 0x00;
+		self.y = 0x00;
+		self.stk_ptr = 0xFD;
+		self.stat = 0x00 | StatusFlag::U as u8;
+		self.addr = 0xFFFC;
+
+		let lo: u16 = self.read(self.addr) as u16;
+		let hi: u16 = self.read(self.addr + 1) as u16;
+		self.p_ctr = (hi << 8) | lo;
+
+		self.addr = 0x0000;
+		self.addr_rel = 0x0000;
+		self.m = 0x00;
+		self.cycles = 8;
+	}
+
+	/// Fetch the data at the currently specified address and save it into the M register.
+	/// Strictly speaking, this does not need to return a value. But it's easy, and potentially
+	/// convenient.
+	pub fn fetch(&mut self) -> u8 {
+		// TODO: Do not fetch on instructions with addressing mode = Implied.
+		self.m = self.read(self.addr);
+
+		self.m
 	}
 
 	/// Read data from the connected Bus.
