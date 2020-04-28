@@ -292,6 +292,288 @@ impl<'a> CPU<'a> {
         self.zero_page(self.y)
     }
 
+    // -- Operation Modes -- //
+    
+    /// Add M to A with Carry
+    pub fn adc(&mut self) -> u8 {
+        0
+    }
+
+    /// "AND" M with A
+    pub fn and(&mut self) -> u8 {
+        0
+    }
+
+    /// Shift Left One Bit (M or A)
+    pub fn asl(&mut self) -> u8 {
+        0
+    }
+
+    /// Branch on Carry Clear
+    pub fn bcc(&mut self) -> u8 {
+        0
+    }
+
+    /// Branch on Carry Set
+    pub fn bcs(&mut self) -> u8 {
+        0
+    }
+
+    /// Branch on Result Zero
+    pub fn beq(&mut self) -> u8 {
+        0
+    }
+
+    /// Test Bits in M with A
+    pub fn bit(&mut self) -> u8 {
+        0
+    }
+
+    /// Branch on Result Minus
+    pub fn bmi(&mut self) -> u8 {
+        0
+    }
+
+    /// Branch on Result not Zero
+    pub fn bne(&mut self) -> u8 {
+        0
+    }
+
+    /// Branch on Result Plus
+    pub fn bpl(&mut self) -> u8 {
+        0
+    }
+
+    /// Force Break
+    pub fn brk(&mut self) -> u8 {
+        0
+    }
+
+    /// Branch on Overflow Clear
+    pub fn bvc(&mut self) -> u8 {
+        0
+    }
+
+    /// Branch on Overflow Set
+    pub fn bvs(&mut self) -> u8 {
+        0
+    }
+
+    /// Clear Carry Flag
+    pub fn clc(&mut self) -> u8 {
+        0
+    }
+
+    /// Clear Decimal Mode
+    pub fn cld(&mut self) -> u8 {
+        0
+    }
+
+    /// Clear interrupt Disable Bit
+    pub fn cli(&mut self) -> u8 {
+        0
+    }
+
+    /// Clear Overflow Flag
+    pub fn clv(&mut self) -> u8 {
+        0
+    }
+
+    /// Compare M and A
+    pub fn cmp(&mut self) -> u8 {
+        0
+    }
+
+    /// Compare M and X
+    pub fn cpx(&mut self) -> u8 {
+        0
+    }
+
+    /// Compare M and Y
+    pub fn cpy(&mut self) -> u8 {
+        0
+    }
+
+    /// Decrement M by One
+    pub fn dec(&mut self) -> u8 {
+        0
+    }
+
+    /// Decrement X by One
+    pub fn dex(&mut self) -> u8 {
+        0
+    }
+
+    /// Decrement Y by One
+    pub fn dey(&mut self) -> u8 {
+        0
+    }
+
+    /// "Exclusive-Or" M with A
+    pub fn eor(&mut self) -> u8 {
+        0
+    }
+
+    /// Increment M by One
+    pub fn inc(&mut self) -> u8 {
+        0
+    }
+
+    /// Increment X by One
+    pub fn inx(&mut self) -> u8 {
+        0
+    }
+
+    /// Increment Y by One
+    pub fn iny(&mut self) -> u8 {
+        0
+    }
+
+    /// Jump to Location
+    pub fn jmp(&mut self) -> u8 {
+        0
+    }
+
+    /// Jump to Location Save Return Address
+    pub fn jsr(&mut self) -> u8 {
+        0
+    }
+
+    /// Load A with M
+    pub fn lda(&mut self) -> u8 {
+        0
+    }
+
+    /// Load X with M
+    pub fn ldx(&mut self) -> u8 {
+        0
+    }
+
+    /// Load Y with M
+    pub fn ldy(&mut self) -> u8 {
+        0
+    }
+
+    /// Shift Right One Bit (M or A)
+    pub fn lsr(&mut self) -> u8 {
+        0
+    }
+
+    /// No Operation
+    pub fn nop(&mut self) -> u8 {
+        0
+    }
+
+    /// "OR" M with A
+    pub fn ora(&mut self) -> u8 {
+        0
+    }
+
+    /// Push A on Stack
+    pub fn pha(&mut self) -> u8 {
+        0
+    }
+
+    /// Push Processor Status on Stack
+    pub fn php(&mut self) -> u8 {
+        0
+    }
+
+    /// Pull A from Stack
+    pub fn pla(&mut self) -> u8 {
+        0
+    }
+
+    /// Pull Processor Status from Stack
+    pub fn plp(&mut self) -> u8 {
+        0
+    }
+
+    /// Rotate One Bit Left (M or A)
+    pub fn rol(&mut self) -> u8 {
+        0
+    }
+
+    /// Rotate One Bit Right (M or A)
+    pub fn ror(&mut self) -> u8 {
+        0
+    }
+
+    /// Return from Interrupt
+    pub fn rti(&mut self) -> u8 {
+        0
+    }
+
+    /// Return from Subroutine
+    pub fn rts(&mut self) -> u8 {
+        0
+    }
+
+    /// Subtract M from A with Borrow
+    pub fn sbc(&mut self) -> u8 {
+        0
+    }
+
+    /// Set Carry Flag
+    pub fn sec(&mut self) -> u8 {
+        0
+    }
+
+    /// Set Decimal Mode
+    pub fn sed(&mut self) -> u8 {
+        0
+    }
+
+    /// Set Interrupt Disable Status
+    pub fn sei(&mut self) -> u8 {
+        0
+    }
+
+    /// Store A in M
+    pub fn sta(&mut self) -> u8 {
+        0
+    }
+
+    /// Store X in M
+    pub fn stx(&mut self) -> u8 {
+        0
+    }
+
+    /// Store Y in M
+    pub fn sty(&mut self) -> u8 {
+        0
+    }
+
+    /// Transfer A to X
+    pub fn tax(&mut self) -> u8 {
+        0
+    }
+
+    /// Transfer A to Y
+    pub fn tay(&mut self) -> u8 {
+        0
+    }
+
+    /// Transfer Stack Pointer to X
+    pub fn tsx(&mut self) -> u8 {
+        0
+    }
+
+    /// Transfer X to A
+    pub fn txa(&mut self) -> u8 {
+        0
+    }
+
+    /// Transfer X to Stack Pointer
+    pub fn txs(&mut self) -> u8 {
+        0
+    }
+
+    /// Transfer Y to A
+    pub fn tya(&mut self) -> u8 {
+        0
+    }
+
     /// Helper function for addressing modes which access page zero. This allows cutting down
     /// on byte code by specifying only one other byte of input to an instruction.
     /// 
@@ -386,6 +668,11 @@ impl<'a> CPU<'a> {
         }
     }
 
+    /// Dummy function for unsupported operations. No-op.
+    fn xxx(&mut self) -> u8 {
+        0
+    }
+
     /// Instruction interpreter. This reads the opcode set on the CPU and returns some data about
     /// the instruction that is associated with that opcode. Each instruction contains:
     /// 
@@ -396,262 +683,262 @@ impl<'a> CPU<'a> {
     /// define a known number of cycles, so they need to be mapped for correctness. 
     fn interpret_instruction(&self) -> Instruction<'a> {
         match self.opcode {
-            0x00 => Instruction { name: "BRK", cycles: 7, address_mode: Box::new(CPU::imm) },
-            0x01 => Instruction { name: "ORA", cycles: 6, address_mode: Box::new(CPU::izx) },
-            0x02 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x03 => Instruction { name: "XXX", cycles: 8, address_mode: Box::new(CPU::imp) },
-            0x04 => Instruction { name: "XXX", cycles: 3, address_mode: Box::new(CPU::imp) },
-            0x05 => Instruction { name: "ORA", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0x06 => Instruction { name: "ASL", cycles: 5, address_mode: Box::new(CPU::zpg) },
-            0x07 => Instruction { name: "XXX", cycles: 5, address_mode: Box::new(CPU::imp) },
-            0x08 => Instruction { name: "PHP", cycles: 3, address_mode: Box::new(CPU::imp) },
-            0x09 => Instruction { name: "ORA", cycles: 2, address_mode: Box::new(CPU::imm) },
-            0x0A => Instruction { name: "ASL", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x0B => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x0C => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0x0D => Instruction { name: "ORA", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0x0E => Instruction { name: "ASL", cycles: 6, address_mode: Box::new(CPU::abs) },
-            0x0F => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0x10 => Instruction { name: "BPL", cycles: 2, address_mode: Box::new(CPU::rel) },
-            0x11 => Instruction { name: "ORA", cycles: 5, address_mode: Box::new(CPU::izy) },
-            0x12 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x13 => Instruction { name: "XXX", cycles: 8, address_mode: Box::new(CPU::imp) },
-            0x14 => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0x15 => Instruction { name: "ORA", cycles: 4, address_mode: Box::new(CPU::zpx) },
-            0x16 => Instruction { name: "ASL", cycles: 6, address_mode: Box::new(CPU::zpx) },
-            0x17 => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0x18 => Instruction { name: "CLC", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x19 => Instruction { name: "ORA", cycles: 4, address_mode: Box::new(CPU::aby) },
-            0x1A => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x1B => Instruction { name: "XXX", cycles: 7, address_mode: Box::new(CPU::imp) },
-            0x1C => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0x1D => Instruction { name: "ORA", cycles: 4, address_mode: Box::new(CPU::abx) },
-            0x1E => Instruction { name: "ASL", cycles: 7, address_mode: Box::new(CPU::abx) },
-            0x1F => Instruction { name: "XXX", cycles: 7, address_mode: Box::new(CPU::imp) },
-            0x20 => Instruction { name: "JSR", cycles: 6, address_mode: Box::new(CPU::abs) },
-            0x21 => Instruction { name: "AND", cycles: 6, address_mode: Box::new(CPU::izx) },
-            0x22 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x23 => Instruction { name: "XXX", cycles: 8, address_mode: Box::new(CPU::imp) },
-            0x24 => Instruction { name: "BIT", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0x25 => Instruction { name: "AND", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0x26 => Instruction { name: "ROL", cycles: 5, address_mode: Box::new(CPU::zpg) },
-            0x27 => Instruction { name: "XXX", cycles: 5, address_mode: Box::new(CPU::imp) },
-            0x28 => Instruction { name: "PLP", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0x29 => Instruction { name: "AND", cycles: 2, address_mode: Box::new(CPU::imm) },
-            0x2A => Instruction { name: "ROL", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x2B => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x2C => Instruction { name: "BIT", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0x2D => Instruction { name: "AND", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0x2E => Instruction { name: "ROL", cycles: 6, address_mode: Box::new(CPU::abs) },
-            0x2F => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0x30 => Instruction { name: "BMI", cycles: 2, address_mode: Box::new(CPU::rel) },
-            0x31 => Instruction { name: "AND", cycles: 5, address_mode: Box::new(CPU::izy) },
-            0x32 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x33 => Instruction { name: "XXX", cycles: 8, address_mode: Box::new(CPU::imp) },
-            0x34 => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0x35 => Instruction { name: "AND", cycles: 4, address_mode: Box::new(CPU::zpx) },
-            0x36 => Instruction { name: "ROL", cycles: 6, address_mode: Box::new(CPU::zpx) },
-            0x37 => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0x38 => Instruction { name: "SEC", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x39 => Instruction { name: "AND", cycles: 4, address_mode: Box::new(CPU::aby) },
-            0x3A => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x3B => Instruction { name: "XXX", cycles: 7, address_mode: Box::new(CPU::imp) },
-            0x3C => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0x3D => Instruction { name: "AND", cycles: 4, address_mode: Box::new(CPU::abx) },
-            0x3E => Instruction { name: "ROL", cycles: 7, address_mode: Box::new(CPU::abx) },
-            0x3F => Instruction { name: "XXX", cycles: 7, address_mode: Box::new(CPU::imp) },
-            0x40 => Instruction { name: "RTI", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0x41 => Instruction { name: "EOR", cycles: 6, address_mode: Box::new(CPU::izx) },
-            0x42 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x43 => Instruction { name: "XXX", cycles: 8, address_mode: Box::new(CPU::imp) },
-            0x44 => Instruction { name: "XXX", cycles: 3, address_mode: Box::new(CPU::imp) },
-            0x45 => Instruction { name: "EOR", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0x46 => Instruction { name: "LSR", cycles: 5, address_mode: Box::new(CPU::zpg) },
-            0x47 => Instruction { name: "XXX", cycles: 5, address_mode: Box::new(CPU::imp) },
-            0x48 => Instruction { name: "PHA", cycles: 3, address_mode: Box::new(CPU::imp) },
-            0x49 => Instruction { name: "EOR", cycles: 2, address_mode: Box::new(CPU::imm) },
-            0x4A => Instruction { name: "LSR", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x4B => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x4C => Instruction { name: "JMP", cycles: 3, address_mode: Box::new(CPU::abs) },
-            0x4D => Instruction { name: "EOR", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0x4E => Instruction { name: "LSR", cycles: 6, address_mode: Box::new(CPU::abs) },
-            0x4F => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0x50 => Instruction { name: "BVC", cycles: 2, address_mode: Box::new(CPU::rel) },
-            0x51 => Instruction { name: "EOR", cycles: 5, address_mode: Box::new(CPU::izy) },
-            0x52 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x53 => Instruction { name: "XXX", cycles: 8, address_mode: Box::new(CPU::imp) },
-            0x54 => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0x55 => Instruction { name: "EOR", cycles: 4, address_mode: Box::new(CPU::zpx) },
-            0x56 => Instruction { name: "LSR", cycles: 6, address_mode: Box::new(CPU::zpx) },
-            0x57 => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0x58 => Instruction { name: "CLI", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x59 => Instruction { name: "EOR", cycles: 4, address_mode: Box::new(CPU::aby) },
-            0x5A => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x5B => Instruction { name: "XXX", cycles: 7, address_mode: Box::new(CPU::imp) },
-            0x5C => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0x5D => Instruction { name: "EOR", cycles: 4, address_mode: Box::new(CPU::abx) },
-            0x5E => Instruction { name: "LSR", cycles: 7, address_mode: Box::new(CPU::abx) },
-            0x5F => Instruction { name: "XXX", cycles: 7, address_mode: Box::new(CPU::imp) },
-            0x60 => Instruction { name: "RTS", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0x61 => Instruction { name: "ADC", cycles: 6, address_mode: Box::new(CPU::izx) },
-            0x62 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x63 => Instruction { name: "XXX", cycles: 8, address_mode: Box::new(CPU::imp) },
-            0x64 => Instruction { name: "XXX", cycles: 3, address_mode: Box::new(CPU::imp) },
-            0x65 => Instruction { name: "ADC", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0x66 => Instruction { name: "ROR", cycles: 5, address_mode: Box::new(CPU::zpg) },
-            0x67 => Instruction { name: "XXX", cycles: 5, address_mode: Box::new(CPU::imp) },
-            0x68 => Instruction { name: "PLA", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0x69 => Instruction { name: "ADC", cycles: 2, address_mode: Box::new(CPU::imm) },
-            0x6A => Instruction { name: "ROR", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x6B => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x6C => Instruction { name: "JMP", cycles: 5, address_mode: Box::new(CPU::ind) },
-            0x6D => Instruction { name: "ADC", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0x6E => Instruction { name: "ROR", cycles: 6, address_mode: Box::new(CPU::abs) },
-            0x6F => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0x70 => Instruction { name: "BVS", cycles: 2, address_mode: Box::new(CPU::rel) },
-            0x71 => Instruction { name: "ADC", cycles: 5, address_mode: Box::new(CPU::izy) },
-            0x72 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x73 => Instruction { name: "XXX", cycles: 8, address_mode: Box::new(CPU::imp) },
-            0x74 => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0x75 => Instruction { name: "ADC", cycles: 4, address_mode: Box::new(CPU::zpx) },
-            0x76 => Instruction { name: "ROR", cycles: 6, address_mode: Box::new(CPU::zpx) },
-            0x77 => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0x78 => Instruction { name: "SEI", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x79 => Instruction { name: "ADC", cycles: 4, address_mode: Box::new(CPU::aby) },
-            0x7A => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x7B => Instruction { name: "XXX", cycles: 7, address_mode: Box::new(CPU::imp) },
-            0x7C => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0x7D => Instruction { name: "ADC", cycles: 4, address_mode: Box::new(CPU::abx) },
-            0x7E => Instruction { name: "ROR", cycles: 7, address_mode: Box::new(CPU::abx) },
-            0x7F => Instruction { name: "XXX", cycles: 7, address_mode: Box::new(CPU::imp) },
-            0x80 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x81 => Instruction { name: "STA", cycles: 6, address_mode: Box::new(CPU::izx) },
-            0x82 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x83 => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0x84 => Instruction { name: "STY", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0x85 => Instruction { name: "STA", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0x86 => Instruction { name: "STX", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0x87 => Instruction { name: "XXX", cycles: 3, address_mode: Box::new(CPU::imp) },
-            0x88 => Instruction { name: "DEY", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x89 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x8A => Instruction { name: "TXA", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x8B => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x8C => Instruction { name: "STY", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0x8D => Instruction { name: "STA", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0x8E => Instruction { name: "STX", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0x8F => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0x90 => Instruction { name: "BCC", cycles: 2, address_mode: Box::new(CPU::rel) },
-            0x91 => Instruction { name: "STA", cycles: 6, address_mode: Box::new(CPU::izy) },
-            0x92 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x93 => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0x94 => Instruction { name: "STY", cycles: 4, address_mode: Box::new(CPU::zpx) },
-            0x95 => Instruction { name: "STA", cycles: 4, address_mode: Box::new(CPU::zpx) },
-            0x96 => Instruction { name: "STX", cycles: 4, address_mode: Box::new(CPU::zpy) },
-            0x97 => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0x98 => Instruction { name: "TYA", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x99 => Instruction { name: "STA", cycles: 5, address_mode: Box::new(CPU::aby) },
-            0x9A => Instruction { name: "TXS", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0x9B => Instruction { name: "XXX", cycles: 5, address_mode: Box::new(CPU::imp) },
-            0x9C => Instruction { name: "XXX", cycles: 5, address_mode: Box::new(CPU::imp) },
-            0x9D => Instruction { name: "STA", cycles: 5, address_mode: Box::new(CPU::abx) },
-            0x9E => Instruction { name: "XXX", cycles: 5, address_mode: Box::new(CPU::imp) },
-            0x9F => Instruction { name: "XXX", cycles: 5, address_mode: Box::new(CPU::imp) },
-            0xA0 => Instruction { name: "LDY", cycles: 2, address_mode: Box::new(CPU::imm) },
-            0xA1 => Instruction { name: "LDA", cycles: 6, address_mode: Box::new(CPU::izx) },
-            0xA2 => Instruction { name: "LDX", cycles: 2, address_mode: Box::new(CPU::imm) },
-            0xA3 => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0xA4 => Instruction { name: "LDY", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0xA5 => Instruction { name: "LDA", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0xA6 => Instruction { name: "LDX", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0xA7 => Instruction { name: "XXX", cycles: 3, address_mode: Box::new(CPU::imp) },
-            0xA8 => Instruction { name: "TAY", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xA9 => Instruction { name: "LDA", cycles: 2, address_mode: Box::new(CPU::imm) },
-            0xAA => Instruction { name: "TAX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xAB => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xAC => Instruction { name: "LDY", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0xAD => Instruction { name: "LDA", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0xAE => Instruction { name: "LDX", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0xAF => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0xB0 => Instruction { name: "BCS", cycles: 2, address_mode: Box::new(CPU::rel) },
-            0xB1 => Instruction { name: "LDA", cycles: 5, address_mode: Box::new(CPU::izy) },
-            0xB2 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xB3 => Instruction { name: "XXX", cycles: 5, address_mode: Box::new(CPU::imp) },
-            0xB4 => Instruction { name: "LDY", cycles: 4, address_mode: Box::new(CPU::zpx) },
-            0xB5 => Instruction { name: "LDA", cycles: 4, address_mode: Box::new(CPU::zpx) },
-            0xB6 => Instruction { name: "LDX", cycles: 4, address_mode: Box::new(CPU::zpy) },
-            0xB7 => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0xB8 => Instruction { name: "CLV", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xB9 => Instruction { name: "LDA", cycles: 4, address_mode: Box::new(CPU::aby) },
-            0xBA => Instruction { name: "TSX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xBB => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0xBC => Instruction { name: "LDY", cycles: 4, address_mode: Box::new(CPU::abx) },
-            0xBD => Instruction { name: "LDA", cycles: 4, address_mode: Box::new(CPU::abx) },
-            0xBE => Instruction { name: "LDX", cycles: 4, address_mode: Box::new(CPU::aby) },
-            0xBF => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0xC0 => Instruction { name: "CPY", cycles: 2, address_mode: Box::new(CPU::imm) },
-            0xC1 => Instruction { name: "CMP", cycles: 6, address_mode: Box::new(CPU::izx) },
-            0xC2 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xC3 => Instruction { name: "XXX", cycles: 8, address_mode: Box::new(CPU::imp) },
-            0xC4 => Instruction { name: "CPY", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0xC5 => Instruction { name: "CMP", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0xC6 => Instruction { name: "DEC", cycles: 5, address_mode: Box::new(CPU::zpg) },
-            0xC7 => Instruction { name: "XXX", cycles: 5, address_mode: Box::new(CPU::imp) },
-            0xC8 => Instruction { name: "INY", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xC9 => Instruction { name: "CMP", cycles: 2, address_mode: Box::new(CPU::imm) },
-            0xCA => Instruction { name: "DEX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xCB => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xCC => Instruction { name: "CPY", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0xCD => Instruction { name: "CMP", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0xCE => Instruction { name: "DEC", cycles: 6, address_mode: Box::new(CPU::abs) },
-            0xCF => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0xD0 => Instruction { name: "BNE", cycles: 2, address_mode: Box::new(CPU::rel) },
-            0xD1 => Instruction { name: "CMP", cycles: 5, address_mode: Box::new(CPU::izy) },
-            0xD2 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xD3 => Instruction { name: "XXX", cycles: 8, address_mode: Box::new(CPU::imp) },
-            0xD4 => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0xD5 => Instruction { name: "CMP", cycles: 4, address_mode: Box::new(CPU::zpx) },
-            0xD6 => Instruction { name: "DEC", cycles: 6, address_mode: Box::new(CPU::zpx) },
-            0xD7 => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0xD8 => Instruction { name: "CLD", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xD9 => Instruction { name: "CMP", cycles: 4, address_mode: Box::new(CPU::aby) },
-            0xDA => Instruction { name: "NOP", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xDB => Instruction { name: "XXX", cycles: 7, address_mode: Box::new(CPU::imp) },
-            0xDC => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0xDD => Instruction { name: "CMP", cycles: 4, address_mode: Box::new(CPU::abx) },
-            0xDE => Instruction { name: "DEC", cycles: 7, address_mode: Box::new(CPU::abx) },
-            0xDF => Instruction { name: "XXX", cycles: 7, address_mode: Box::new(CPU::imp) },
-            0xE0 => Instruction { name: "CPX", cycles: 2, address_mode: Box::new(CPU::imm) },
-            0xE1 => Instruction { name: "SBC", cycles: 6, address_mode: Box::new(CPU::izx) },
-            0xE2 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xE3 => Instruction { name: "XXX", cycles: 8, address_mode: Box::new(CPU::imp) },
-            0xE4 => Instruction { name: "CPX", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0xE5 => Instruction { name: "SBC", cycles: 3, address_mode: Box::new(CPU::zpg) },
-            0xE6 => Instruction { name: "INC", cycles: 5, address_mode: Box::new(CPU::zpg) },
-            0xE7 => Instruction { name: "XXX", cycles: 5, address_mode: Box::new(CPU::imp) },
-            0xE8 => Instruction { name: "INX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xE9 => Instruction { name: "SBC", cycles: 2, address_mode: Box::new(CPU::imm) },
-            0xEA => Instruction { name: "NOP", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xEB => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xEC => Instruction { name: "CPX", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0xED => Instruction { name: "SBC", cycles: 4, address_mode: Box::new(CPU::abs) },
-            0xEE => Instruction { name: "INC", cycles: 6, address_mode: Box::new(CPU::abs) },
-            0xEF => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0xF0 => Instruction { name: "BEQ", cycles: 2, address_mode: Box::new(CPU::rel) },
-            0xF1 => Instruction { name: "SBC", cycles: 5, address_mode: Box::new(CPU::izy) },
-            0xF2 => Instruction { name: "XXX", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xF3 => Instruction { name: "XXX", cycles: 8, address_mode: Box::new(CPU::imp) },
-            0xF4 => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0xF5 => Instruction { name: "SBC", cycles: 4, address_mode: Box::new(CPU::zpx) },
-            0xF6 => Instruction { name: "INC", cycles: 6, address_mode: Box::new(CPU::zpx) },
-            0xF7 => Instruction { name: "XXX", cycles: 6, address_mode: Box::new(CPU::imp) },
-            0xF8 => Instruction { name: "SED", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xF9 => Instruction { name: "SBC", cycles: 4, address_mode: Box::new(CPU::aby) },
-            0xFA => Instruction { name: "NOP", cycles: 2, address_mode: Box::new(CPU::imp) },
-            0xFB => Instruction { name: "XXX", cycles: 7, address_mode: Box::new(CPU::imp) },
-            0xFC => Instruction { name: "XXX", cycles: 4, address_mode: Box::new(CPU::imp) },
-            0xFD => Instruction { name: "SBC", cycles: 4, address_mode: Box::new(CPU::abx) },
-            0xFE => Instruction { name: "INC", cycles: 7, address_mode: Box::new(CPU::abx) },
-            0xFF => Instruction { name: "XXX", cycles: 7, address_mode: Box::new(CPU::imp) },
+            0x00 => Instruction { name: "BRK", cycles: 7, operate: Box::new(CPU::brk), address_mode: Box::new(CPU::imm) },
+            0x01 => Instruction { name: "ORA", cycles: 6, operate: Box::new(CPU::ora), address_mode: Box::new(CPU::izx) },
+            0x02 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x03 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x04 => Instruction { name: "XXX", cycles: 3, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x05 => Instruction { name: "ORA", cycles: 3, operate: Box::new(CPU::ora), address_mode: Box::new(CPU::zpg) },
+            0x06 => Instruction { name: "ASL", cycles: 5, operate: Box::new(CPU::asl), address_mode: Box::new(CPU::zpg) },
+            0x07 => Instruction { name: "XXX", cycles: 5, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x08 => Instruction { name: "PHP", cycles: 3, operate: Box::new(CPU::php), address_mode: Box::new(CPU::imp) },
+            0x09 => Instruction { name: "ORA", cycles: 2, operate: Box::new(CPU::ora), address_mode: Box::new(CPU::imm) },
+            0x0A => Instruction { name: "ASL", cycles: 2, operate: Box::new(CPU::asl), address_mode: Box::new(CPU::imp) },
+            0x0B => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x0C => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x0D => Instruction { name: "ORA", cycles: 4, operate: Box::new(CPU::ora), address_mode: Box::new(CPU::abs) },
+            0x0E => Instruction { name: "ASL", cycles: 6, operate: Box::new(CPU::asl), address_mode: Box::new(CPU::abs) },
+            0x0F => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x10 => Instruction { name: "BPL", cycles: 2, operate: Box::new(CPU::bpl), address_mode: Box::new(CPU::rel) },
+            0x11 => Instruction { name: "ORA", cycles: 5, operate: Box::new(CPU::ora), address_mode: Box::new(CPU::izy) },
+            0x12 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x13 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x14 => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x15 => Instruction { name: "ORA", cycles: 4, operate: Box::new(CPU::ora), address_mode: Box::new(CPU::zpx) },
+            0x16 => Instruction { name: "ASL", cycles: 6, operate: Box::new(CPU::asl), address_mode: Box::new(CPU::zpx) },
+            0x17 => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x18 => Instruction { name: "CLC", cycles: 2, operate: Box::new(CPU::clc), address_mode: Box::new(CPU::imp) },
+            0x19 => Instruction { name: "ORA", cycles: 4, operate: Box::new(CPU::ora), address_mode: Box::new(CPU::aby) },
+            0x1A => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x1B => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x1C => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x1D => Instruction { name: "ORA", cycles: 4, operate: Box::new(CPU::ora), address_mode: Box::new(CPU::abx) },
+            0x1E => Instruction { name: "ASL", cycles: 7, operate: Box::new(CPU::asl), address_mode: Box::new(CPU::abx) },
+            0x1F => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x20 => Instruction { name: "JSR", cycles: 6, operate: Box::new(CPU::jsr), address_mode: Box::new(CPU::abs) },
+            0x21 => Instruction { name: "AND", cycles: 6, operate: Box::new(CPU::and), address_mode: Box::new(CPU::izx) },
+            0x22 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x23 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x24 => Instruction { name: "BIT", cycles: 3, operate: Box::new(CPU::bit), address_mode: Box::new(CPU::zpg) },
+            0x25 => Instruction { name: "AND", cycles: 3, operate: Box::new(CPU::and), address_mode: Box::new(CPU::zpg) },
+            0x26 => Instruction { name: "ROL", cycles: 5, operate: Box::new(CPU::rol), address_mode: Box::new(CPU::zpg) },
+            0x27 => Instruction { name: "XXX", cycles: 5, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x28 => Instruction { name: "PLP", cycles: 4, operate: Box::new(CPU::plp), address_mode: Box::new(CPU::imp) },
+            0x29 => Instruction { name: "AND", cycles: 2, operate: Box::new(CPU::and), address_mode: Box::new(CPU::imm) },
+            0x2A => Instruction { name: "ROL", cycles: 2, operate: Box::new(CPU::rol), address_mode: Box::new(CPU::imp) },
+            0x2B => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x2C => Instruction { name: "BIT", cycles: 4, operate: Box::new(CPU::bit), address_mode: Box::new(CPU::abs) },
+            0x2D => Instruction { name: "AND", cycles: 4, operate: Box::new(CPU::and), address_mode: Box::new(CPU::abs) },
+            0x2E => Instruction { name: "ROL", cycles: 6, operate: Box::new(CPU::rol), address_mode: Box::new(CPU::abs) },
+            0x2F => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x30 => Instruction { name: "BMI", cycles: 2, operate: Box::new(CPU::bmi), address_mode: Box::new(CPU::rel) },
+            0x31 => Instruction { name: "AND", cycles: 5, operate: Box::new(CPU::and), address_mode: Box::new(CPU::izy) },
+            0x32 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x33 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x34 => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x35 => Instruction { name: "AND", cycles: 4, operate: Box::new(CPU::and), address_mode: Box::new(CPU::zpx) },
+            0x36 => Instruction { name: "ROL", cycles: 6, operate: Box::new(CPU::rol), address_mode: Box::new(CPU::zpx) },
+            0x37 => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x38 => Instruction { name: "SEC", cycles: 2, operate: Box::new(CPU::sec), address_mode: Box::new(CPU::imp) },
+            0x39 => Instruction { name: "AND", cycles: 4, operate: Box::new(CPU::and), address_mode: Box::new(CPU::aby) },
+            0x3A => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x3B => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x3C => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x3D => Instruction { name: "AND", cycles: 4, operate: Box::new(CPU::and), address_mode: Box::new(CPU::abx) },
+            0x3E => Instruction { name: "ROL", cycles: 7, operate: Box::new(CPU::rol), address_mode: Box::new(CPU::abx) },
+            0x3F => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x40 => Instruction { name: "RTI", cycles: 6, operate: Box::new(CPU::rti), address_mode: Box::new(CPU::imp) },
+            0x41 => Instruction { name: "EOR", cycles: 6, operate: Box::new(CPU::eor), address_mode: Box::new(CPU::izx) },
+            0x42 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x43 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x44 => Instruction { name: "XXX", cycles: 3, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x45 => Instruction { name: "EOR", cycles: 3, operate: Box::new(CPU::eor), address_mode: Box::new(CPU::zpg) },
+            0x46 => Instruction { name: "LSR", cycles: 5, operate: Box::new(CPU::lsr), address_mode: Box::new(CPU::zpg) },
+            0x47 => Instruction { name: "XXX", cycles: 5, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x48 => Instruction { name: "PHA", cycles: 3, operate: Box::new(CPU::pha), address_mode: Box::new(CPU::imp) },
+            0x49 => Instruction { name: "EOR", cycles: 2, operate: Box::new(CPU::eor), address_mode: Box::new(CPU::imm) },
+            0x4A => Instruction { name: "LSR", cycles: 2, operate: Box::new(CPU::lsr), address_mode: Box::new(CPU::imp) },
+            0x4B => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x4C => Instruction { name: "JMP", cycles: 3, operate: Box::new(CPU::jmp), address_mode: Box::new(CPU::abs) },
+            0x4D => Instruction { name: "EOR", cycles: 4, operate: Box::new(CPU::eor), address_mode: Box::new(CPU::abs) },
+            0x4E => Instruction { name: "LSR", cycles: 6, operate: Box::new(CPU::lsr), address_mode: Box::new(CPU::abs) },
+            0x4F => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x50 => Instruction { name: "BVC", cycles: 2, operate: Box::new(CPU::bvc), address_mode: Box::new(CPU::rel) },
+            0x51 => Instruction { name: "EOR", cycles: 5, operate: Box::new(CPU::eor), address_mode: Box::new(CPU::izy) },
+            0x52 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x53 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x54 => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x55 => Instruction { name: "EOR", cycles: 4, operate: Box::new(CPU::eor), address_mode: Box::new(CPU::zpx) },
+            0x56 => Instruction { name: "LSR", cycles: 6, operate: Box::new(CPU::lsr), address_mode: Box::new(CPU::zpx) },
+            0x57 => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x58 => Instruction { name: "CLI", cycles: 2, operate: Box::new(CPU::cli), address_mode: Box::new(CPU::imp) },
+            0x59 => Instruction { name: "EOR", cycles: 4, operate: Box::new(CPU::eor), address_mode: Box::new(CPU::aby) },
+            0x5A => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x5B => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x5C => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x5D => Instruction { name: "EOR", cycles: 4, operate: Box::new(CPU::eor), address_mode: Box::new(CPU::abx) },
+            0x5E => Instruction { name: "LSR", cycles: 7, operate: Box::new(CPU::lsr), address_mode: Box::new(CPU::abx) },
+            0x5F => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x60 => Instruction { name: "RTS", cycles: 6, operate: Box::new(CPU::rts), address_mode: Box::new(CPU::imp) },
+            0x61 => Instruction { name: "ADC", cycles: 6, operate: Box::new(CPU::adc), address_mode: Box::new(CPU::izx) },
+            0x62 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x63 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x64 => Instruction { name: "XXX", cycles: 3, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x65 => Instruction { name: "ADC", cycles: 3, operate: Box::new(CPU::adc), address_mode: Box::new(CPU::zpg) },
+            0x66 => Instruction { name: "ROR", cycles: 5, operate: Box::new(CPU::ror), address_mode: Box::new(CPU::zpg) },
+            0x67 => Instruction { name: "XXX", cycles: 5, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x68 => Instruction { name: "PLA", cycles: 4, operate: Box::new(CPU::pla), address_mode: Box::new(CPU::imp) },
+            0x69 => Instruction { name: "ADC", cycles: 2, operate: Box::new(CPU::adc), address_mode: Box::new(CPU::imm) },
+            0x6A => Instruction { name: "ROR", cycles: 2, operate: Box::new(CPU::ror), address_mode: Box::new(CPU::imp) },
+            0x6B => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x6C => Instruction { name: "JMP", cycles: 5, operate: Box::new(CPU::jmp), address_mode: Box::new(CPU::ind) },
+            0x6D => Instruction { name: "ADC", cycles: 4, operate: Box::new(CPU::adc), address_mode: Box::new(CPU::abs) },
+            0x6E => Instruction { name: "ROR", cycles: 6, operate: Box::new(CPU::ror), address_mode: Box::new(CPU::abs) },
+            0x6F => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x70 => Instruction { name: "BVS", cycles: 2, operate: Box::new(CPU::bvs), address_mode: Box::new(CPU::rel) },
+            0x71 => Instruction { name: "ADC", cycles: 5, operate: Box::new(CPU::adc), address_mode: Box::new(CPU::izy) },
+            0x72 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x73 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x74 => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x75 => Instruction { name: "ADC", cycles: 4, operate: Box::new(CPU::adc), address_mode: Box::new(CPU::zpx) },
+            0x76 => Instruction { name: "ROR", cycles: 6, operate: Box::new(CPU::ror), address_mode: Box::new(CPU::zpx) },
+            0x77 => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x78 => Instruction { name: "SEI", cycles: 2, operate: Box::new(CPU::sei), address_mode: Box::new(CPU::imp) },
+            0x79 => Instruction { name: "ADC", cycles: 4, operate: Box::new(CPU::adc), address_mode: Box::new(CPU::aby) },
+            0x7A => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x7B => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x7C => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x7D => Instruction { name: "ADC", cycles: 4, operate: Box::new(CPU::adc), address_mode: Box::new(CPU::abx) },
+            0x7E => Instruction { name: "ROR", cycles: 7, operate: Box::new(CPU::ror), address_mode: Box::new(CPU::abx) },
+            0x7F => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x80 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x81 => Instruction { name: "STA", cycles: 6, operate: Box::new(CPU::sta), address_mode: Box::new(CPU::izx) },
+            0x82 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x83 => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x84 => Instruction { name: "STY", cycles: 3, operate: Box::new(CPU::sty), address_mode: Box::new(CPU::zpg) },
+            0x85 => Instruction { name: "STA", cycles: 3, operate: Box::new(CPU::sta), address_mode: Box::new(CPU::zpg) },
+            0x86 => Instruction { name: "STX", cycles: 3, operate: Box::new(CPU::stx), address_mode: Box::new(CPU::zpg) },
+            0x87 => Instruction { name: "XXX", cycles: 3, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x88 => Instruction { name: "DEY", cycles: 2, operate: Box::new(CPU::dey), address_mode: Box::new(CPU::imp) },
+            0x89 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x8A => Instruction { name: "TXA", cycles: 2, operate: Box::new(CPU::txa), address_mode: Box::new(CPU::imp) },
+            0x8B => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x8C => Instruction { name: "STY", cycles: 4, operate: Box::new(CPU::sty), address_mode: Box::new(CPU::abs) },
+            0x8D => Instruction { name: "STA", cycles: 4, operate: Box::new(CPU::sta), address_mode: Box::new(CPU::abs) },
+            0x8E => Instruction { name: "STX", cycles: 4, operate: Box::new(CPU::stx), address_mode: Box::new(CPU::abs) },
+            0x8F => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x90 => Instruction { name: "BCC", cycles: 2, operate: Box::new(CPU::bcc), address_mode: Box::new(CPU::rel) },
+            0x91 => Instruction { name: "STA", cycles: 6, operate: Box::new(CPU::sta), address_mode: Box::new(CPU::izy) },
+            0x92 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x93 => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x94 => Instruction { name: "STY", cycles: 4, operate: Box::new(CPU::sty), address_mode: Box::new(CPU::zpx) },
+            0x95 => Instruction { name: "STA", cycles: 4, operate: Box::new(CPU::sta), address_mode: Box::new(CPU::zpx) },
+            0x96 => Instruction { name: "STX", cycles: 4, operate: Box::new(CPU::stx), address_mode: Box::new(CPU::zpy) },
+            0x97 => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x98 => Instruction { name: "TYA", cycles: 2, operate: Box::new(CPU::tya), address_mode: Box::new(CPU::imp) },
+            0x99 => Instruction { name: "STA", cycles: 5, operate: Box::new(CPU::sta), address_mode: Box::new(CPU::aby) },
+            0x9A => Instruction { name: "TXS", cycles: 2, operate: Box::new(CPU::txs), address_mode: Box::new(CPU::imp) },
+            0x9B => Instruction { name: "XXX", cycles: 5, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x9C => Instruction { name: "XXX", cycles: 5, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0x9D => Instruction { name: "STA", cycles: 5, operate: Box::new(CPU::sta), address_mode: Box::new(CPU::abx) },
+            0x9E => Instruction { name: "XXX", cycles: 5, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0x9F => Instruction { name: "XXX", cycles: 5, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xA0 => Instruction { name: "LDY", cycles: 2, operate: Box::new(CPU::ldy), address_mode: Box::new(CPU::imm) },
+            0xA1 => Instruction { name: "LDA", cycles: 6, operate: Box::new(CPU::lda), address_mode: Box::new(CPU::izx) },
+            0xA2 => Instruction { name: "LDX", cycles: 2, operate: Box::new(CPU::ldx), address_mode: Box::new(CPU::imm) },
+            0xA3 => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xA4 => Instruction { name: "LDY", cycles: 3, operate: Box::new(CPU::ldy), address_mode: Box::new(CPU::zpg) },
+            0xA5 => Instruction { name: "LDA", cycles: 3, operate: Box::new(CPU::lda), address_mode: Box::new(CPU::zpg) },
+            0xA6 => Instruction { name: "LDX", cycles: 3, operate: Box::new(CPU::ldx), address_mode: Box::new(CPU::zpg) },
+            0xA7 => Instruction { name: "XXX", cycles: 3, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xA8 => Instruction { name: "TAY", cycles: 2, operate: Box::new(CPU::tay), address_mode: Box::new(CPU::imp) },
+            0xA9 => Instruction { name: "LDA", cycles: 2, operate: Box::new(CPU::lda), address_mode: Box::new(CPU::imm) },
+            0xAA => Instruction { name: "TAX", cycles: 2, operate: Box::new(CPU::tax), address_mode: Box::new(CPU::imp) },
+            0xAB => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xAC => Instruction { name: "LDY", cycles: 4, operate: Box::new(CPU::ldy), address_mode: Box::new(CPU::abs) },
+            0xAD => Instruction { name: "LDA", cycles: 4, operate: Box::new(CPU::lda), address_mode: Box::new(CPU::abs) },
+            0xAE => Instruction { name: "LDX", cycles: 4, operate: Box::new(CPU::ldx), address_mode: Box::new(CPU::abs) },
+            0xAF => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xB0 => Instruction { name: "BCS", cycles: 2, operate: Box::new(CPU::bcs), address_mode: Box::new(CPU::rel) },
+            0xB1 => Instruction { name: "LDA", cycles: 5, operate: Box::new(CPU::lda), address_mode: Box::new(CPU::izy) },
+            0xB2 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xB3 => Instruction { name: "XXX", cycles: 5, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xB4 => Instruction { name: "LDY", cycles: 4, operate: Box::new(CPU::ldy), address_mode: Box::new(CPU::zpx) },
+            0xB5 => Instruction { name: "LDA", cycles: 4, operate: Box::new(CPU::lda), address_mode: Box::new(CPU::zpx) },
+            0xB6 => Instruction { name: "LDX", cycles: 4, operate: Box::new(CPU::ldx), address_mode: Box::new(CPU::zpy) },
+            0xB7 => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xB8 => Instruction { name: "CLV", cycles: 2, operate: Box::new(CPU::clv), address_mode: Box::new(CPU::imp) },
+            0xB9 => Instruction { name: "LDA", cycles: 4, operate: Box::new(CPU::lda), address_mode: Box::new(CPU::aby) },
+            0xBA => Instruction { name: "TSX", cycles: 2, operate: Box::new(CPU::tsx), address_mode: Box::new(CPU::imp) },
+            0xBB => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xBC => Instruction { name: "LDY", cycles: 4, operate: Box::new(CPU::ldy), address_mode: Box::new(CPU::abx) },
+            0xBD => Instruction { name: "LDA", cycles: 4, operate: Box::new(CPU::lda), address_mode: Box::new(CPU::abx) },
+            0xBE => Instruction { name: "LDX", cycles: 4, operate: Box::new(CPU::ldx), address_mode: Box::new(CPU::aby) },
+            0xBF => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xC0 => Instruction { name: "CPY", cycles: 2, operate: Box::new(CPU::cpy), address_mode: Box::new(CPU::imm) },
+            0xC1 => Instruction { name: "CMP", cycles: 6, operate: Box::new(CPU::cmp), address_mode: Box::new(CPU::izx) },
+            0xC2 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0xC3 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xC4 => Instruction { name: "CPY", cycles: 3, operate: Box::new(CPU::cpy), address_mode: Box::new(CPU::zpg) },
+            0xC5 => Instruction { name: "CMP", cycles: 3, operate: Box::new(CPU::cmp), address_mode: Box::new(CPU::zpg) },
+            0xC6 => Instruction { name: "DEC", cycles: 5, operate: Box::new(CPU::dec), address_mode: Box::new(CPU::zpg) },
+            0xC7 => Instruction { name: "XXX", cycles: 5, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xC8 => Instruction { name: "INY", cycles: 2, operate: Box::new(CPU::iny), address_mode: Box::new(CPU::imp) },
+            0xC9 => Instruction { name: "CMP", cycles: 2, operate: Box::new(CPU::cmp), address_mode: Box::new(CPU::imm) },
+            0xCA => Instruction { name: "DEX", cycles: 2, operate: Box::new(CPU::dex), address_mode: Box::new(CPU::imp) },
+            0xCB => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xCC => Instruction { name: "CPY", cycles: 4, operate: Box::new(CPU::cpy), address_mode: Box::new(CPU::abs) },
+            0xCD => Instruction { name: "CMP", cycles: 4, operate: Box::new(CPU::cmp), address_mode: Box::new(CPU::abs) },
+            0xCE => Instruction { name: "DEC", cycles: 6, operate: Box::new(CPU::dec), address_mode: Box::new(CPU::abs) },
+            0xCF => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xD0 => Instruction { name: "BNE", cycles: 2, operate: Box::new(CPU::bne), address_mode: Box::new(CPU::rel) },
+            0xD1 => Instruction { name: "CMP", cycles: 5, operate: Box::new(CPU::cmp), address_mode: Box::new(CPU::izy) },
+            0xD2 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xD3 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xD4 => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0xD5 => Instruction { name: "CMP", cycles: 4, operate: Box::new(CPU::cmp), address_mode: Box::new(CPU::zpx) },
+            0xD6 => Instruction { name: "DEC", cycles: 6, operate: Box::new(CPU::dec), address_mode: Box::new(CPU::zpx) },
+            0xD7 => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xD8 => Instruction { name: "CLD", cycles: 2, operate: Box::new(CPU::cld), address_mode: Box::new(CPU::imp) },
+            0xD9 => Instruction { name: "CMP", cycles: 4, operate: Box::new(CPU::cmp), address_mode: Box::new(CPU::aby) },
+            0xDA => Instruction { name: "NOP", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0xDB => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xDC => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0xDD => Instruction { name: "CMP", cycles: 4, operate: Box::new(CPU::cmp), address_mode: Box::new(CPU::abx) },
+            0xDE => Instruction { name: "DEC", cycles: 7, operate: Box::new(CPU::dec), address_mode: Box::new(CPU::abx) },
+            0xDF => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xE0 => Instruction { name: "CPX", cycles: 2, operate: Box::new(CPU::cpx), address_mode: Box::new(CPU::imm) },
+            0xE1 => Instruction { name: "SBC", cycles: 6, operate: Box::new(CPU::sbc), address_mode: Box::new(CPU::izx) },
+            0xE2 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0xE3 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xE4 => Instruction { name: "CPX", cycles: 3, operate: Box::new(CPU::cpx), address_mode: Box::new(CPU::zpg) },
+            0xE5 => Instruction { name: "SBC", cycles: 3, operate: Box::new(CPU::sbc), address_mode: Box::new(CPU::zpg) },
+            0xE6 => Instruction { name: "INC", cycles: 5, operate: Box::new(CPU::inc), address_mode: Box::new(CPU::zpg) },
+            0xE7 => Instruction { name: "XXX", cycles: 5, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xE8 => Instruction { name: "INX", cycles: 2, operate: Box::new(CPU::inx), address_mode: Box::new(CPU::imp) },
+            0xE9 => Instruction { name: "SBC", cycles: 2, operate: Box::new(CPU::sbc), address_mode: Box::new(CPU::imm) },
+            0xEA => Instruction { name: "NOP", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0xEB => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::sbc), address_mode: Box::new(CPU::imp) },
+            0xEC => Instruction { name: "CPX", cycles: 4, operate: Box::new(CPU::cpx), address_mode: Box::new(CPU::abs) },
+            0xED => Instruction { name: "SBC", cycles: 4, operate: Box::new(CPU::sbc), address_mode: Box::new(CPU::abs) },
+            0xEE => Instruction { name: "INC", cycles: 6, operate: Box::new(CPU::inc), address_mode: Box::new(CPU::abs) },
+            0xEF => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xF0 => Instruction { name: "BEQ", cycles: 2, operate: Box::new(CPU::beq), address_mode: Box::new(CPU::rel) },
+            0xF1 => Instruction { name: "SBC", cycles: 5, operate: Box::new(CPU::sbc), address_mode: Box::new(CPU::izy) },
+            0xF2 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xF3 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xF4 => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0xF5 => Instruction { name: "SBC", cycles: 4, operate: Box::new(CPU::sbc), address_mode: Box::new(CPU::zpx) },
+            0xF6 => Instruction { name: "INC", cycles: 6, operate: Box::new(CPU::inc), address_mode: Box::new(CPU::zpx) },
+            0xF7 => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xF8 => Instruction { name: "SED", cycles: 2, operate: Box::new(CPU::sed), address_mode: Box::new(CPU::imp) },
+            0xF9 => Instruction { name: "SBC", cycles: 4, operate: Box::new(CPU::sbc), address_mode: Box::new(CPU::aby) },
+            0xFA => Instruction { name: "NOP", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0xFB => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
+            0xFC => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
+            0xFD => Instruction { name: "SBC", cycles: 4, operate: Box::new(CPU::sbc), address_mode: Box::new(CPU::abx) },
+            0xFE => Instruction { name: "INC", cycles: 7, operate: Box::new(CPU::inc), address_mode: Box::new(CPU::abx) },
+            0xFF => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
         }
     }
 }

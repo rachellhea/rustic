@@ -15,7 +15,7 @@ pub struct Instruction<'a> {
     // The number of cycles required for computing this instruction
     pub cycles: u8,
     // A pointer to the function which implements the Operation logic for this instruction 
-    // operate_function: Option<u8>,
+    pub operate: Box<dyn FnOnce(&mut CPU<'a>) -> u8>,
     // A pointer to the function which implements the Addressing Mode logic for this instruction
     pub address_mode: Box<dyn FnOnce(&mut CPU<'a>) -> u8>,
 }
