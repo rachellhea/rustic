@@ -12,9 +12,9 @@ use std::vec::Vec;
 /// For reference: http://www.obelisk.me.uk/6502/reference.html
 pub struct Instruction<'a> {
 	// The name of the instruction (3 alphabetic characters, all upper-case)
-	name: &'a str,
+	pub name: &'a str,
 	// The number of cycles required for computing this instruction
-	cycles: u8,
+	pub cycles: u8,
 	// A pointer to the function which implements the Operation logic for this instruction 
 	// operate_function: Option<u8>,
 	// A pointer to the function which implements the Addressing Mode logic for this instruction
@@ -40,7 +40,7 @@ lazy_static! {
 	/// A reference table of instructions by their byte-length opcode. There are 256 of these.
 	/// 
 	/// Reference: http://archive.6502.org/datasheets/rockwell_r650x_r651x.pdf
-	static ref INSTRUCTION_LOOKUP: Vec<Instruction<'static>> = vec![
+	pub static ref INSTRUCTION_LOOKUP: Vec<Instruction<'static>> = vec![
 		Instruction { name: "BRK", cycles: 7 },
 		Instruction { name: "ORA", cycles: 6 },
 		Instruction { name: "XXX", cycles: 2 },
