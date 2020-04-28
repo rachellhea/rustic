@@ -10,14 +10,14 @@ use crate::cpu::CPU;
 /// 
 /// For reference: http://www.obelisk.me.uk/6502/reference.html
 pub struct Instruction<'a> {
-	// The name of the instruction (3 alphabetic characters, all upper-case)
-	pub name: &'a str,
-	// The number of cycles required for computing this instruction
-	pub cycles: u8,
-	// A pointer to the function which implements the Operation logic for this instruction 
-	// operate_function: Option<u8>,
-	// A pointer to the function which implements the Addressing Mode logic for this instruction
-	pub address_mode: Box<dyn FnOnce(&mut CPU<'a>) -> u8>,
+    // The name of the instruction (3 alphabetic characters, all upper-case)
+    pub name: &'a str,
+    // The number of cycles required for computing this instruction
+    pub cycles: u8,
+    // A pointer to the function which implements the Operation logic for this instruction 
+    // operate_function: Option<u8>,
+    // A pointer to the function which implements the Addressing Mode logic for this instruction
+    pub address_mode: Box<dyn FnOnce(&mut CPU<'a>) -> u8>,
 }
 
 #[allow(dead_code)]
