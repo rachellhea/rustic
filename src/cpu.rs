@@ -40,18 +40,18 @@ impl<'a> CPU<'a> {
     /// Construct a new CPU instance with the given Bus hook.
     pub fn new(bus: &'a mut Bus) -> CPU<'a> {
         CPU {
-            bus: 		Box::new(bus),
-            stat: 		0x00,
-            a: 			0x00,
-            x: 			0x00,
-            y: 			0x00,
-            stk_ptr: 	0x00,
-            p_ctr: 		0x0000,
-            m: 			0x00,
-            addr: 		0x0000,
-            addr_rel: 	0x00,
-            opcode: 	0x00,
-            cycles: 	0,
+            bus:      Box::new(bus),
+            stat:     0x00,
+            a: 	      0x00,
+            x: 	      0x00,
+            y: 	      0x00,
+            stk_ptr:  0x00,
+            p_ctr:    0x0000,
+            m:        0x00,
+            addr:     0x0000,
+            addr_rel: 0x00,
+            opcode:   0x00,
+            cycles:   0,
         }
     }
 
@@ -59,21 +59,18 @@ impl<'a> CPU<'a> {
     /// Iterate forward one clock cycle. Accept the input associated with that clock
     /// cycle and act on it.
     pub fn clock(&mut self) {
-        match self.cycles {
-            0 => {
-                self.opcode = self.read(self.p_ctr);
-                self.p_ctr += 1;
+        if self.cycles == 0 {
+            self.opcode = self.read(self.p_ctr);
+            self.p_ctr += 1;
 
-                let instruction = self.interpret_instruction();
-                self.cycles = instruction.cycles;
+            let instruction = self.interpret_instruction();
+            self.cycles = instruction.cycles;
 
-                // Execute the instruction. If at least one additional cycle is needed,
-                // then increment the cycles counter.
-                let addrmode_cycles = (instruction.address_mode)(self);
-                self.cycles += addrmode_cycles;
-            },
-            _ => (),
-        };
+            // Execute the instruction. If at least one additional cycle is needed,
+            // then increment the cycles counter.
+            let addrmode_cycles = (instruction.address_mode)(self);
+            self.cycles += addrmode_cycles;
+        }
 
         self.cycles -= 1;
     }
@@ -85,22 +82,7 @@ impl<'a> CPU<'a> {
             return;
         }
 
-        self.write(0x0100 + self.stk_ptr as u16, (self.p_ctr >> 8) as u8 & 0x00FF);
-        self.stk_ptr -= 1;
-        self.write(0x0100 + self.stk_ptr as u16, self.p_ctr as u8 & 0x00FF);
-        self.stk_ptr -= 1;
-
-        self.set_status_flag(StatusFlag::B, false);
-        self.set_status_flag(StatusFlag::U, true);
-        self.set_status_flag(StatusFlag::I, true);
-        self.write(0x0100 + self.stk_ptr as u16, self.stat);
-        self.stk_ptr -= 1;
-        self.addr = 0xFFFE;
-
-        let lo: u16 = self.read(self.addr) as u16;
-        let hi: u16 = self.read(self.addr) as u16;
-        self.p_ctr = (hi << 8) | lo;
-        self.cycles = 7;
+        self.interrupt_and_set_address_to(0xFFFE);
     }
 
     #[allow(dead_code)]
@@ -108,38 +90,24 @@ impl<'a> CPU<'a> {
     /// This code is *mostly* equivalent to irq, with the only difference being the address
     /// that we read to determine the value for the program counter.
     pub fn interrupt_no_mask(&mut self) {
-        self.write(0x0100 + self.stk_ptr as u16, (self.p_ctr >> 8) as u8 & 0x00FF);
-        self.stk_ptr -= 1;
-        self.write(0x0100 + self.stk_ptr as u16, self.p_ctr as u8 & 0x00FF);
-        self.stk_ptr -= 1;
-
-        self.set_status_flag(StatusFlag::B, false);
-        self.set_status_flag(StatusFlag::U, true);
-        self.set_status_flag(StatusFlag::I, true);
-        self.write(0x0100 + self.stk_ptr as u16, self.stat);
-        self.stk_ptr -= 1;
-        self.addr = 0xFFFA;
-
-        let lo: u16 = self.read(self.addr) as u16;
-        let hi: u16 = self.read(self.addr) as u16;
-        self.p_ctr = (hi << 8) | lo;
-        self.cycles = 7;
+        self.interrupt_and_set_address_to(0xFFFA);
     }
 
     #[allow(dead_code)]
     /// Reset the CPU to a known state:
-    /// 	- All registers (A, X, Y, and M) are set to 0
-    /// 	- The stack pointer is set to address 0x00FD
-    /// 	- The status code is set to 00100000 (Unused)
-    /// 	- The program counter is set to the value at address 0xFFFD | 0xFFFC
-    /// 	- The absolute and relative addresses are set to 0
-    /// 	- The cycle count is set to 8 (because this operation takes time)
+    /// 
+    /// * All registers (A, X, Y, and M) are set to 0
+    /// * The stack pointer is set to address 0x00FD
+    /// * The status code is set to 00100000 (Unused)
+    /// * The program counter is set to the value at address 0xFFFD | 0xFFFC
+    /// * The absolute and relative addresses are set to 0
+    /// * The cycle count is set to 8 (because this operation takes time)
     pub fn reset(&mut self) {
         self.a = 0x00;
         self.x = 0x00;
         self.y = 0x00;
         self.stk_ptr = 0xFD;
-        self.stat = 0x00 | StatusFlag::U as u8;
+        self.stat = StatusFlag::U as u8; // 00100000
         self.addr = 0xFFFC;
 
         let lo: u16 = self.read(self.addr) as u16;
@@ -203,9 +171,11 @@ impl<'a> CPU<'a> {
     /// be treated as data on which to operate, not as part of an address which points to data.
     /// 
     /// e.g.,
-    ///         LDA #10         ;Load 10 ($0A) into the accumulator
-    ///			LDX #LO LABEL   ;Load the LSB of a 16 bit address into X
-    ///			LDY #HI LABEL   ;Load the MSB of a 16 bit address into Y
+    /// ```assembly
+    /// LDA #10         ;Load 10 ($0A) into the accumulator
+    /// LDX #LO LABEL   ;Load the LSB of a 16 bit address into X
+    /// LDY #HI LABEL   ;Load the MSB of a 16 bit address into Y
+    /// ```
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/addressing.html#IMM
     pub fn imm(&mut self) -> u8 {
@@ -268,7 +238,7 @@ impl<'a> CPU<'a> {
     
         let lo: u16 = self.read(pointer & 0x00FF) as u16;
         let hi: u16 = self.read((pointer + 1) & 0x00FF) as u16;
-        self.addr = (hi << 8) | lo + self.y as u16;
+        self.addr = ((hi << 8) | lo) + (self.y as u16);
 
         ((self.addr & 0xFF00) == (hi << 8)) as u8
     }
@@ -363,7 +333,29 @@ impl<'a> CPU<'a> {
         // Check if we have moved to a different page after incrementing. If we have, then we need
         // an additional clock cycle.
         // Note that for the case where v == 0, this is trivially true, as we cannot flip the page.
-        !(self.addr & 0xFF00 == (hi << 8)) as u8
+        (self.addr & 0xFF00 != (hi << 8)) as u8
+    }
+
+    /// Interrupt helper. This contains the shared logic used by the interrupt functions
+    /// IRQ and NMI (interrupt and interrupt_no_mask, respectively), which only differ in
+    /// the address they use to set the program counter.
+    fn interrupt_and_set_address_to(&mut self, addr: u16) {
+        self.write(0x0100 + self.stk_ptr as u16, (self.p_ctr >> 8) as u8);
+        self.stk_ptr -= 1;
+        self.write(0x0100 + self.stk_ptr as u16, self.p_ctr as u8);
+        self.stk_ptr -= 1;
+
+        self.set_status_flag(StatusFlag::B, false);
+        self.set_status_flag(StatusFlag::U, true);
+        self.set_status_flag(StatusFlag::I, true);
+        self.write(0x0100 + self.stk_ptr as u16, self.stat);
+        self.stk_ptr -= 1;
+        self.addr = addr;
+
+        let lo: u16 = self.read(self.addr) as u16;
+        let hi: u16 = self.read(self.addr) as u16;
+        self.p_ctr = (hi << 8) | lo;
+        self.cycles = 7;
     }
 
     /// Read data from the connected Bus.
@@ -387,16 +379,18 @@ impl<'a> CPU<'a> {
     
     /// Set the boolean value of a particular flag in the status code.
     fn set_status_flag(&mut self, status_flag: StatusFlag, v: bool) {
-        match v {
-            true => self.stat |= status_flag as u8,
-            false => self.stat &= !(status_flag as u8),
-        };
+        if v {
+            self.stat |= status_flag as u8;
+        } else {
+            self.stat &= !(status_flag as u8);
+        }
     }
 
     /// Instruction interpreter. This reads the opcode set on the CPU and returns some data about
     /// the instruction that is associated with that opcode. Each instruction contains:
-    /// 	1. The number of clock cycles required by the instruction.
-    /// 	2. A function which implements the data addressing mode behavior of the instruction.
+    /// 
+    /// 1. The number of clock cycles required by the instruction.
+    /// 2. A function which implements the data addressing mode behavior of the instruction.
     /// 
     /// Ideally, this wouldn't be as large as it is; unfortunately, unsupported opcodes still
     /// define a known number of cycles, so they need to be mapped for correctness. 

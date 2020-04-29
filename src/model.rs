@@ -26,7 +26,7 @@ pub struct Instruction<'a> {
 /// to inform future instructions about prior results, or to control various aspects of functionality,
 /// e.g., if the I flag is set (disable interrupts), then IRQ signals can be ignored (but NMI cannot).
 pub enum StatusFlag {
-    C = 1 << 0, // Carry Bit
+    C = 1,      // Carry Bit
     Z = 1 << 1, // Zero
     I = 1 << 2, // Disable Interrupts
     D = 1 << 3, // Decimal Mode (unused)
