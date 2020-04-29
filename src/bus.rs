@@ -1,10 +1,13 @@
+use std::fmt;
+
 /// Defines the total amount of RAM to be allocated.
 const RAM_SIZE: usize = 64 * 1024;
 
 /// Core structure of the Bus, which controls access to RAM across connected devices.
+#[derive(Debug)]
 pub struct Bus {
     /// The allocated RAM for the Bus.
-    ram: [u8; RAM_SIZE],
+    ram: RAM,
 }
 
 impl Bus {
@@ -12,7 +15,7 @@ impl Bus {
     /// Construct a new Bus, instantiating its RAM block to all 0s.
     pub fn new() -> Bus {
         Bus {
-            ram: [0x0000; RAM_SIZE],
+            ram: RAM { data: [0x0000; RAM_SIZE] },
         }
     }
 
@@ -20,7 +23,7 @@ impl Bus {
     pub fn read(&self, addr: u16) -> u8 {
         match addr {
             // Note that this matcher will change as we connect devices to the Bus.
-            0x0000..=0xFFFF => self.ram[addr as usize],
+            0x0000..=0xFFFF => self.ram.data[addr as usize],
         }
     }
 
@@ -28,7 +31,46 @@ impl Bus {
     pub fn write(&mut self, addr: u16, data: u8) {
         match addr {
             // Note that this matcher will change as we connect devices to the Bus.
-            0x0000..=0xFFFF => self.ram[addr as usize] = data,
+            0x0000..=0xFFFF => self.ram.data[addr as usize] = data,
         };
+    }
+}
+
+/// Custom struct for implmenting the Debug trait on top of a "large" array.
+/// Rust only supports out-of-the-box implementation of the Debug trait for arrays of size
+/// 32 and smaller. Since we're making something much larger (65536), we need to implement
+/// Debug ourselves.
+struct RAM {
+    data: [u8; RAM_SIZE],
+}
+
+impl fmt::Debug for RAM {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        self.data[..].fmt(formatter)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use expectest::prelude::*;
+
+    #[test]
+    fn instantiation() {
+        let bus = Bus::new();
+
+        expect!(bus.ram.data.iter()).to(have_count(RAM_SIZE));
+        for byte in bus.ram.data.iter() {
+            expect!(*byte).to(be_eq(0x00));
+        }
+    }
+
+    #[test]
+    fn write_and_read() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0xAD);
+
+        let byte = bus.read(0x0000);
+        expect!(byte).to(be_eq(0xAD));
     }
 }

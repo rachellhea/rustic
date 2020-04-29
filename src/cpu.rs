@@ -45,7 +45,7 @@ impl<'a> CPU<'a> {
             a: 	      0x00,
             x: 	      0x00,
             y: 	      0x00,
-            stk_ptr:  0x00,
+            stk_ptr:  0xFD,
             p_ctr:    0x0000,
             m:        0x00,
             addr:     0x0000,
@@ -201,7 +201,7 @@ impl<'a> CPU<'a> {
     pub fn ind(&mut self) -> u8 {
         let (pointer, _, lo) = self.read_address_from_bus();
         if lo == 0x00FF {
-            self.addr = (self.read(pointer & 0xFF00) << 8) as u16 | self.read(pointer) as u16;
+            self.addr = ((self.read(pointer & 0xFF00) as u16) << 8) | self.read(pointer) as u16;
         } else {
             self.addr = self.read(pointer + 1) as u16 | self.read(pointer) as u16;
         }
@@ -940,5 +940,102 @@ impl<'a> CPU<'a> {
             0xFE => Instruction { name: "INC", cycles: 7, operate: Box::new(CPU::inc), address_mode: Box::new(CPU::abx) },
             0xFF => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use expectest::prelude::*;
+
+    #[test]
+    fn clock_cycle() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0x00); // BRK instruction, IMM addressing mode
+        bus.write(0x0001, 0x10); // IMM value provided is 16
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.clock();
+
+        expect!(cpu.cycles).to(be_equal_to(6)); // BRK + IMM takes 7 cycles, and we have issued 1
+        expect!(cpu.a).to(be_equal_to(0x0001)); // The next byte of input after the opcode is the value of the instruction's input
+    }
+
+    #[test]
+    fn clock_cycle_next() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0x00); // BRK instruction, IMM addressing mode
+        bus.write(0x0001, 0x10); // IMM value provided is 16
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.clock();
+        cpu.clock();
+
+        expect!(cpu.cycles).to(be_equal_to(5)); // Second cycle consumed, so expect 5
+        expect!(cpu.a).to(be_equal_to(0x0001)); // Value in A has not changed
+    }
+
+    #[test]
+    fn interrupt_ignored() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.set_status_flag(StatusFlag::I, true);
+        cpu.interrupt();
+
+        expect!(cpu.addr).to_not(be_equal_to(0xFFFE)); // Make sure we did nothing
+    }
+
+    #[test]
+    fn interrupt_followed() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.set_status_flag(StatusFlag::I, false);
+        cpu.interrupt();
+
+        expect!(cpu.addr).to(be_equal_to(0xFFFE));
+    }
+
+    #[test]
+    fn interrupt_no_mask_cannot_ignore() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.set_status_flag(StatusFlag::I, true);
+        cpu.interrupt_no_mask();
+
+        expect!(cpu.addr).to(be_equal_to(0xFFFA));
+    }
+
+    #[test]
+    fn reset() {
+        let mut bus = Bus::new();
+        bus.write(0xFFFC, 0x10);
+        bus.write(0xFFFD, 0x10);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.reset();
+
+        expect!(cpu.a).to(be_equal_to(0x00));
+        expect!(cpu.x).to(be_equal_to(0x00));
+        expect!(cpu.y).to(be_equal_to(0x00));
+        expect!(cpu.m).to(be_equal_to(0x00));
+        expect!(cpu.stk_ptr).to(be_equal_to(0xFD));
+        expect!(cpu.stat).to(be_equal_to(0b00100000)); // Only U is set (Unused)
+        expect!(cpu.p_ctr).to(be_equal_to(0x1010));
+        expect!(cpu.addr).to(be_equal_to(0x0000));
+        expect!(cpu.addr_rel).to(be_equal_to(0x0000));
+        expect!(cpu.cycles).to(be_equal_to(8));
+    }
+
+    #[test]
+    fn fetch() {
+        let mut bus = Bus::new();
+        bus.write(0xFFFC, 0x10);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr = 0xFFFC;
+        let fetched = cpu.fetch();
+
+        expect!(cpu.m).to(be_equal_to(0x10));
+        expect!(fetched).to(be_equal_to(0x10));
     }
 }
