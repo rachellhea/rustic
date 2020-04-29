@@ -137,23 +137,23 @@ impl<'a> CPU<'a> {
     /// first and the page specified second.
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/addressing.html#ABS
-    pub fn abs(&mut self) -> u8 {
+    fn abs(&mut self) -> u8 {
         self.read_address_with_value_offset(0)
     }
 
-    /// Absolute addressing, offset by X. This is the same as ABS, but the result adddress is
+    /// Absolute addressing, offset by X. This is the same as ABS, but the result address is
     /// incremented by the value in register X.
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/addressing.html#ABX
-    pub fn abx(&mut self) -> u8 {
+    fn abx(&mut self) -> u8 {
         self.read_address_with_value_offset(self.x as u16)
     }
 
-    /// Absolute addressing, offset by Y. This is the same as ABS, but the result adddress is
+    /// Absolute addressing, offset by Y. This is the same as ABS, but the result address is
     /// incremented by the value in register Y.
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/addressing.html#ABY
-    pub fn aby(&mut self) -> u8 {
+    fn aby(&mut self) -> u8 {
         self.read_address_with_value_offset(self.y as u16)
     }
 
@@ -161,7 +161,7 @@ impl<'a> CPU<'a> {
     /// actually be used, but that's not the addressing mode's problem.
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/addressing.html#IMP
-    pub fn imp(&mut self) -> u8 {
+    fn imp(&mut self) -> u8 {
         self.m = self.a;
 
         0
@@ -178,7 +178,7 @@ impl<'a> CPU<'a> {
     /// ```
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/addressing.html#IMM
-    pub fn imm(&mut self) -> u8 {
+    fn imm(&mut self) -> u8 {
         self.a = self.p_ctr as u8;
         self.p_ctr += 1;
 
@@ -198,7 +198,7 @@ impl<'a> CPU<'a> {
     /// about this bug and designed around it.
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/addressing.html#IND
-    pub fn ind(&mut self) -> u8 {
+    fn ind(&mut self) -> u8 {
         let (pointer, _, lo) = self.read_address_from_bus();
         if lo == 0x00FF {
             self.addr = ((self.read(pointer & 0xFF00) as u16) << 8) | self.read(pointer) as u16;
@@ -215,7 +215,7 @@ impl<'a> CPU<'a> {
     /// indexing (with zero page wrap-around).
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/addressing.html#IZX
-    pub fn izx(&mut self) -> u8 {
+    fn izx(&mut self) -> u8 {
         let (p, _, _) = self.read_address_from_bus();
         let pointer = p + self.x as u16;
 
@@ -233,7 +233,7 @@ impl<'a> CPU<'a> {
     /// If the incrementing requires a page change, then we signal for an additional clock cycle.
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/addressing.html#IZY
-    pub fn izy(&mut self) -> u8 {
+    fn izy(&mut self) -> u8 {
         let (pointer, _, _) = self.read_address_from_bus();
     
         let lo: u16 = self.read(pointer & 0x00FF) as u16;
@@ -247,7 +247,7 @@ impl<'a> CPU<'a> {
     /// This is used commonly by Branching instructions.
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/addressing.html#REL
-    pub fn rel(&mut self) -> u8 {
+    fn rel(&mut self) -> u8 {
         self.addr_rel = self.read(self.p_ctr) as u16;
         self.p_ctr += 1;
 
@@ -270,7 +270,7 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/addressing.html#ZPG
     /// Paging Documentation: https://en.wikipedia.org/wiki/Paging
-    pub fn zpg(&mut self) -> u8 {
+    fn zpg(&mut self) -> u8 {
         self.zero_page(0)
     }
 
@@ -278,7 +278,7 @@ impl<'a> CPU<'a> {
     /// This is useful for e.g., looping through successive addresses.
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/addressing.html#ZPX
-    pub fn zpx(&mut self) -> u8 {
+    fn zpx(&mut self) -> u8 {
         self.zero_page(self.x)
     }
 
@@ -288,289 +288,294 @@ impl<'a> CPU<'a> {
     /// This mode can ONLY be used with instructions LDX and STX.
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/addressing.html#ZPY
-    pub fn zpy(&mut self) -> u8 {
+    fn zpy(&mut self) -> u8 {
         self.zero_page(self.y)
     }
 
     // -- Operation Modes -- //
     
     /// Add M to A with Carry
-    pub fn adc(&mut self) -> u8 {
+    fn adc(&mut self) -> u8 {
         0
     }
 
     /// "AND" M with A
-    pub fn and(&mut self) -> u8 {
+    fn and(&mut self) -> u8 {
         0
     }
 
     /// Shift Left One Bit (M or A)
-    pub fn asl(&mut self) -> u8 {
+    fn asl(&mut self) -> u8 {
         0
     }
 
     /// Branch on Carry Clear
-    pub fn bcc(&mut self) -> u8 {
+    fn bcc(&mut self) -> u8 {
         0
     }
 
     /// Branch on Carry Set
-    pub fn bcs(&mut self) -> u8 {
+    fn bcs(&mut self) -> u8 {
         0
     }
 
     /// Branch on Result Zero
-    pub fn beq(&mut self) -> u8 {
+    fn beq(&mut self) -> u8 {
         0
     }
 
     /// Test Bits in M with A
-    pub fn bit(&mut self) -> u8 {
+    fn bit(&mut self) -> u8 {
         0
     }
 
     /// Branch on Result Minus
-    pub fn bmi(&mut self) -> u8 {
+    fn bmi(&mut self) -> u8 {
         0
     }
 
     /// Branch on Result not Zero
-    pub fn bne(&mut self) -> u8 {
+    fn bne(&mut self) -> u8 {
         0
     }
 
     /// Branch on Result Plus
-    pub fn bpl(&mut self) -> u8 {
+    fn bpl(&mut self) -> u8 {
         0
     }
 
     /// Force Break
-    pub fn brk(&mut self) -> u8 {
+    fn brk(&mut self) -> u8 {
         0
     }
 
     /// Branch on Overflow Clear
-    pub fn bvc(&mut self) -> u8 {
+    fn bvc(&mut self) -> u8 {
         0
     }
 
     /// Branch on Overflow Set
-    pub fn bvs(&mut self) -> u8 {
+    fn bvs(&mut self) -> u8 {
         0
     }
 
     /// Clear Carry Flag
-    pub fn clc(&mut self) -> u8 {
+    fn clc(&mut self) -> u8 {
         0
     }
 
     /// Clear Decimal Mode
-    pub fn cld(&mut self) -> u8 {
+    fn cld(&mut self) -> u8 {
         0
     }
 
     /// Clear interrupt Disable Bit
-    pub fn cli(&mut self) -> u8 {
+    fn cli(&mut self) -> u8 {
         0
     }
 
     /// Clear Overflow Flag
-    pub fn clv(&mut self) -> u8 {
+    fn clv(&mut self) -> u8 {
         0
     }
 
     /// Compare M and A
-    pub fn cmp(&mut self) -> u8 {
+    fn cmp(&mut self) -> u8 {
         0
     }
 
     /// Compare M and X
-    pub fn cpx(&mut self) -> u8 {
+    fn cpx(&mut self) -> u8 {
         0
     }
 
     /// Compare M and Y
-    pub fn cpy(&mut self) -> u8 {
+    fn cpy(&mut self) -> u8 {
         0
     }
 
     /// Decrement M by One
-    pub fn dec(&mut self) -> u8 {
+    fn dec(&mut self) -> u8 {
         0
     }
 
     /// Decrement X by One
-    pub fn dex(&mut self) -> u8 {
+    fn dex(&mut self) -> u8 {
         0
     }
 
     /// Decrement Y by One
-    pub fn dey(&mut self) -> u8 {
+    fn dey(&mut self) -> u8 {
         0
     }
 
     /// "Exclusive-Or" M with A
-    pub fn eor(&mut self) -> u8 {
+    fn eor(&mut self) -> u8 {
         0
     }
 
     /// Increment M by One
-    pub fn inc(&mut self) -> u8 {
+    fn inc(&mut self) -> u8 {
         0
     }
 
     /// Increment X by One
-    pub fn inx(&mut self) -> u8 {
+    fn inx(&mut self) -> u8 {
         0
     }
 
     /// Increment Y by One
-    pub fn iny(&mut self) -> u8 {
+    fn iny(&mut self) -> u8 {
         0
     }
 
     /// Jump to Location
-    pub fn jmp(&mut self) -> u8 {
+    fn jmp(&mut self) -> u8 {
         0
     }
 
     /// Jump to Location Save Return Address
-    pub fn jsr(&mut self) -> u8 {
+    fn jsr(&mut self) -> u8 {
         0
     }
 
     /// Load A with M
-    pub fn lda(&mut self) -> u8 {
+    fn lda(&mut self) -> u8 {
         0
     }
 
     /// Load X with M
-    pub fn ldx(&mut self) -> u8 {
+    fn ldx(&mut self) -> u8 {
         0
     }
 
     /// Load Y with M
-    pub fn ldy(&mut self) -> u8 {
+    fn ldy(&mut self) -> u8 {
         0
     }
 
     /// Shift Right One Bit (M or A)
-    pub fn lsr(&mut self) -> u8 {
+    fn lsr(&mut self) -> u8 {
         0
     }
 
     /// No Operation
-    pub fn nop(&mut self) -> u8 {
+    fn nop(&mut self) -> u8 {
         0
     }
 
     /// "OR" M with A
-    pub fn ora(&mut self) -> u8 {
+    fn ora(&mut self) -> u8 {
         0
     }
 
     /// Push A on Stack
-    pub fn pha(&mut self) -> u8 {
+    fn pha(&mut self) -> u8 {
         0
     }
 
     /// Push Processor Status on Stack
-    pub fn php(&mut self) -> u8 {
+    fn php(&mut self) -> u8 {
         0
     }
 
     /// Pull A from Stack
-    pub fn pla(&mut self) -> u8 {
+    fn pla(&mut self) -> u8 {
         0
     }
 
     /// Pull Processor Status from Stack
-    pub fn plp(&mut self) -> u8 {
+    fn plp(&mut self) -> u8 {
         0
     }
 
     /// Rotate One Bit Left (M or A)
-    pub fn rol(&mut self) -> u8 {
+    fn rol(&mut self) -> u8 {
         0
     }
 
     /// Rotate One Bit Right (M or A)
-    pub fn ror(&mut self) -> u8 {
+    fn ror(&mut self) -> u8 {
         0
     }
 
     /// Return from Interrupt
-    pub fn rti(&mut self) -> u8 {
+    fn rti(&mut self) -> u8 {
         0
     }
 
     /// Return from Subroutine
-    pub fn rts(&mut self) -> u8 {
+    fn rts(&mut self) -> u8 {
         0
     }
 
     /// Subtract M from A with Borrow
-    pub fn sbc(&mut self) -> u8 {
+    fn sbc(&mut self) -> u8 {
         0
     }
 
     /// Set Carry Flag
-    pub fn sec(&mut self) -> u8 {
+    fn sec(&mut self) -> u8 {
         0
     }
 
     /// Set Decimal Mode
-    pub fn sed(&mut self) -> u8 {
+    fn sed(&mut self) -> u8 {
         0
     }
 
     /// Set Interrupt Disable Status
-    pub fn sei(&mut self) -> u8 {
+    fn sei(&mut self) -> u8 {
         0
     }
 
     /// Store A in M
-    pub fn sta(&mut self) -> u8 {
+    fn sta(&mut self) -> u8 {
         0
     }
 
     /// Store X in M
-    pub fn stx(&mut self) -> u8 {
+    fn stx(&mut self) -> u8 {
         0
     }
 
     /// Store Y in M
-    pub fn sty(&mut self) -> u8 {
+    fn sty(&mut self) -> u8 {
         0
     }
 
     /// Transfer A to X
-    pub fn tax(&mut self) -> u8 {
+    fn tax(&mut self) -> u8 {
         0
     }
 
     /// Transfer A to Y
-    pub fn tay(&mut self) -> u8 {
+    fn tay(&mut self) -> u8 {
         0
     }
 
     /// Transfer Stack Pointer to X
-    pub fn tsx(&mut self) -> u8 {
+    fn tsx(&mut self) -> u8 {
         0
     }
 
     /// Transfer X to A
-    pub fn txa(&mut self) -> u8 {
+    fn txa(&mut self) -> u8 {
         0
     }
 
     /// Transfer X to Stack Pointer
-    pub fn txs(&mut self) -> u8 {
+    fn txs(&mut self) -> u8 {
         0
     }
 
     /// Transfer Y to A
-    pub fn tya(&mut self) -> u8 {
+    fn tya(&mut self) -> u8 {
+        0
+    }
+
+    /// Dummy function for unsupported operations. No-op.
+    fn xxx(&mut self) -> u8 {
         0
     }
 
@@ -666,11 +671,6 @@ impl<'a> CPU<'a> {
         } else {
             self.stat &= !(status_flag as u8);
         }
-    }
-
-    /// Dummy function for unsupported operations. No-op.
-    fn xxx(&mut self) -> u8 {
-        0
     }
 
     /// Instruction interpreter. This reads the opcode set on the CPU and returns some data about
