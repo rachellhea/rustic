@@ -129,8 +129,11 @@ impl<'a> CPU<'a> {
     /// Strictly speaking, this does not need to return a value. But it's easy, and potentially
     /// convenient.
     pub fn fetch(&mut self) -> u8 {
-        // TODO: Do not fetch on instructions with addressing mode = Implied.
-        self.m = self.read(self.addr);
+        // Check the current address mode; if it is not set to IMP, read a value and cache it
+        // for later operation by an instruction.
+        if (*self.interpret_instruction().address_mode) as usize != CPU::imp as usize {
+            self.m = self.read(self.addr);
+        }
 
         self.m
     }
@@ -1346,5 +1349,23 @@ mod tests {
         expect!(cpu.a).to(be_eq(0b00000000));
         expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
         expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn fetch_imp_mode() {
+        // Note: this is only a unit test at present because we need to
+        // be able to verify the value in the M register to ensure that
+        // it did not change. There is no other way to verify this at
+        // present, due to the lack of instruction implementations. Once
+        // all the instructions are implemented, there should be a good
+        // candidate for turning this into an integration test.
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.m = 0xFF;
+        cpu.opcode = 0x0A; // ASL with IMP addressing
+        
+        let fetched = cpu.fetch();
+        expect!(fetched).to(be_eq(cpu.m));
+        expect!(cpu.m).to(be_eq(0xFF));
     }
 }

@@ -15,9 +15,9 @@ pub struct Instruction<'a> {
     // The number of cycles required for computing this instruction
     pub cycles: u8,
     // A pointer to the function which implements the Operation logic for this instruction 
-    pub operate: Box<dyn FnOnce(&mut CPU<'a>) -> u8>,
+    pub operate: Box<fn(&mut CPU<'a>) -> u8>,
     // A pointer to the function which implements the Addressing Mode logic for this instruction
-    pub address_mode: Box<dyn FnOnce(&mut CPU<'a>) -> u8>,
+    pub address_mode: Box<fn(&mut CPU<'a>) -> u8>,
 }
 
 /// The set of flags which are used to compose the status code bitmask on the CPU.
