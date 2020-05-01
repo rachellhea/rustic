@@ -576,23 +576,56 @@ impl<'a> CPU<'a> {
         1
     }
 
-    /// Push A on Stack
+    /// Push a copy of the accumulator onto the stack.
+    /// 
+    /// No status flags set.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#PHA
+    /// 6502 Stack reference: https://wiki.nesdev.com/w/index.php/Stack
     fn pha(&mut self) -> u8 {
+        self.push_to_stack(self.a);
+
         0
     }
 
-    /// Push Processor Status on Stack
+    /// Push a copy of the accumulator onto the stack.
+    /// 
+    /// No status flags set.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#PHA
+    /// 6502 Stack reference: https://wiki.nesdev.com/w/index.php/Stack
     fn php(&mut self) -> u8 {
+        self.push_to_stack(self.stat);
+
         0
     }
 
-    /// Pull A from Stack
+    /// Pull from the stack and assign that value to the accumulator.
+    /// 
+    /// Status flags set:
+    /// * Z - if A == 0
+    /// * N - if bit 7 of A is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#PHA
+    /// 6502 Stack reference: https://wiki.nesdev.com/w/index.php/Stack
     fn pla(&mut self) -> u8 {
+        self.a = self.pull_from_stack();
+        self.set_status_flag(StatusFlag::Z, self.a == 0);
+        self.set_status_flag(StatusFlag::N, self.a & (1 << 7) > 0);
+
         0
     }
 
-    /// Pull Processor Status from Stack
+    /// Pull from the stack and assign that value to the status code.
+    /// 
+    /// No status flags directly set; they are set to the values from
+    /// the stack.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#PHA
+    /// 6502 Stack reference: https://wiki.nesdev.com/w/index.php/Stack
     fn plp(&mut self) -> u8 {
+        self.stat = self.pull_from_stack();
+
         0
     }
 
@@ -709,8 +742,20 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Transfer Stack Pointer to X
+    /// Transfer stack pointer to X.
+    /// 
+    /// X = S
+    /// 
+    /// Status flags set:
+    /// * Z - if X is 0
+    /// * N - if bit 7 of X is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#TSX
     fn tsx(&mut self) -> u8 {
+        self.x = self.stk_ptr;
+        self.set_status_flag(StatusFlag::Z, self.x == 0);
+        self.set_status_flag(StatusFlag::N, self.x & (1 << 7) > 0);
+
         0
     }
 
@@ -731,8 +776,16 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Transfer X to Stack Pointer
+    /// Transfer X to stack pointer.
+    /// 
+    /// S = X
+    /// 
+    /// No status flags set.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#TXS
     fn txs(&mut self) -> u8 {
+        self.stk_ptr = self.x;
+
         0
     }
 
@@ -841,6 +894,18 @@ impl<'a> CPU<'a> {
         self.bus
             .as_mut()
             .write(addr, data);
+    }
+
+    /// Short helper function for pushing a value to the stack.
+    fn push_to_stack(&mut self, data: u8) {
+        self.write(0x0100 + self.stk_ptr as u16, data);
+        self.stk_ptr -= 1;
+    }
+
+    /// Short helper function for pulling a value from the stack.
+    fn pull_from_stack(&mut self) -> u8 {
+        self.stk_ptr += 1;
+        self.read(0x0100 + self.stk_ptr as u16)
     }
 
     /// Instruction interpreter. This reads the opcode set on the CPU and returns some data about
@@ -1621,5 +1686,81 @@ mod tests {
         let v = cpu.sty();
         expect!(v).to(be_eq(0));
         expect!(bus.read(0x00FF)).to(be_eq(0xFF));
+    }
+
+    #[test]
+    fn tsx() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.x = 0xFF;
+
+        let v = cpu.tsx();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.stk_ptr).to(be_eq(cpu.x));
+    }
+
+    #[test]
+    fn txs() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.stk_ptr = 0xFF;
+
+        let v = cpu.tsx();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.stk_ptr).to(be_eq(cpu.x));
+    }
+
+    #[test]
+    fn pha() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.reset(); // stack pointer is set to 0xFD here
+        cpu.a = 0xFF;
+
+        let v = cpu.pha();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.stk_ptr).to(be_eq(0xFC));
+        expect!(cpu.read(0x01FD)).to(be_eq(cpu.a));
+    }
+
+    #[test]
+    fn php() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.reset(); // stack pointer is set to 0xFD here
+        cpu.stat = 0xFF;
+
+        let v = cpu.php();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.stk_ptr).to(be_eq(0xFC));
+        expect!(cpu.read(0x01FD)).to(be_eq(cpu.stat));
+    }
+
+    #[test]
+    fn pla() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.reset(); // stack pointer is set to 0xFD here
+        cpu.push_to_stack(0xFF); // stack: 0xFD => 0xFF, stack pointer is now 0xFC
+
+        let v = cpu.pla();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.stk_ptr).to(be_eq(0xFD)); // came back to 0xFD after pull
+        expect!(cpu.read(0x01FD)).to(be_eq(cpu.a));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_true());
+    }
+
+    #[test]
+    fn plp() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.reset(); // stack pointer is set to 0xFD here
+        cpu.push_to_stack(0xFF); // stack: 0xFD => 0xFF, stack pointer is now 0xFC
+
+        let v = cpu.plp();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.stk_ptr).to(be_eq(0xFD)); // came back to 0xFD after pull
+        expect!(cpu.read(0x01FD)).to(be_eq(cpu.stat));
     }
 }
