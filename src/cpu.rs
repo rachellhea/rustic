@@ -490,19 +490,61 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Load A with M
+    /// Load a byte of memory into A.
+    /// 
+    /// A,Z,N = M
+    /// 
+    /// Status flags set:
+    /// * Z - if A == 0
+    /// * N - if bit 7 of A is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#LDA
     fn lda(&mut self) -> u8 {
-        0
+        self.fetch();
+
+        self.a = self.m;
+        self.set_status_flag(StatusFlag::Z, self.a == 0);
+        self.set_status_flag(StatusFlag::N, self.a & (1 << 7) > 0);
+        
+        1
     }
 
-    /// Load X with M
+    /// Load a byte of memory into X.
+    /// 
+    /// X,Z,N = M
+    /// 
+    /// Status flags set:
+    /// * Z - if X == 0
+    /// * N - if bit 7 of X is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#LDX
     fn ldx(&mut self) -> u8 {
-        0
+        self.fetch();
+
+        self.x = self.m;
+        self.set_status_flag(StatusFlag::Z, self.x == 0);
+        self.set_status_flag(StatusFlag::N, self.x & (1 << 7) > 0);
+        
+        1
     }
 
-    /// Load Y with M
+    /// Load a byte of memory into Y.
+    /// 
+    /// Y,Z,N = M
+    /// 
+    /// Status flags set:
+    /// * Z - if A == 0
+    /// * N - if bit 7 of A is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#LDY
     fn ldy(&mut self) -> u8 {
-        0
+        self.fetch();
+
+        self.y = self.m;
+        self.set_status_flag(StatusFlag::Z, self.y == 0);
+        self.set_status_flag(StatusFlag::N, self.y & (1 << 7) > 0);
+        
+        1
     }
 
     /// Shift Right One Bit (M or A)
@@ -594,18 +636,42 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Store A in M
+    /// Store the contents of A into memory.
+    /// 
+    /// M = A
+    /// 
+    /// No status flags set.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#STA
     fn sta(&mut self) -> u8 {
+        self.write(self.addr, self.a);
+
         0
     }
 
-    /// Store X in M
+    /// Store the contents of X into memory.
+    /// 
+    /// M = X
+    /// 
+    /// No status flags set.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#STX
     fn stx(&mut self) -> u8 {
+        self.write(self.addr, self.x);
+
         0
     }
 
-    /// Store Y in M
+    /// Store the contents of Y into memory.
+    /// 
+    /// M = Y
+    /// 
+    /// No status flags set.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#STY
     fn sty(&mut self) -> u8 {
+        self.write(self.addr, self.y);
+
         0
     }
 
@@ -1471,5 +1537,89 @@ mod tests {
         expect!(cpu.a).to(be_eq(0x00));
         expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
         expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+    
+    #[test]
+    fn lda() {
+        let mut bus = Bus::new();
+        bus.write(0x00FF, 0x00);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr = 0x00FF;
+        cpu.a = 0xFF;
+
+        let v = cpu.lda();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.a).to(be_eq(0x00));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn ldx() {
+        let mut bus = Bus::new();
+        bus.write(0x00FF, 0x00);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr = 0x00FF;
+        cpu.x = 0xFF;
+
+        let v = cpu.ldx();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.x).to(be_eq(0x00));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn ldy() {
+        let mut bus = Bus::new();
+        bus.write(0x00FF, 0x00);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr = 0x00FF;
+        cpu.y = 0xFF;
+
+        let v = cpu.ldy();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.y).to(be_eq(0x00));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn sta() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr = 0x00FF;
+        cpu.a = 0xFF;
+
+        let v = cpu.sta();
+        expect!(v).to(be_eq(0));
+        expect!(bus.read(0x00FF)).to(be_eq(0xFF));
+    }
+
+    #[test]
+    fn stx() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr = 0x00FF;
+        cpu.x = 0xFF;
+
+        let v = cpu.stx();
+        expect!(v).to(be_eq(0));
+        expect!(bus.read(0x00FF)).to(be_eq(0xFF));
+    }
+
+    #[test]
+    fn sty() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr = 0x00FF;
+        cpu.y = 0xFF;
+
+        let v = cpu.sty();
+        expect!(v).to(be_eq(0));
+        expect!(bus.read(0x00FF)).to(be_eq(0xFF));
     }
 }
