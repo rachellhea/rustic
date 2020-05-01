@@ -303,9 +303,23 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// "AND" M with A
+    /// Logical AND.
+    /// 
+    /// A,Z,N = A & M
+    /// 
+    /// Status flags set:
+    /// * Z - if A == 0
+    /// * N - if bit 7 of A is set
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#AND
     fn and(&mut self) -> u8 {
-        0
+        self.fetch();
+
+        self.a &= self.m;
+        self.set_status_flag(StatusFlag::Z, self.a == 0);
+        self.set_status_flag(StatusFlag::N, self.a & (1 << 7) > 0);
+
+        1
     }
 
     /// Shift Left One Bit (M or A)
@@ -328,8 +342,24 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Test Bits in M with A
+    /// Bit test. Tests if one or more bits are set in a target memory location.
+    /// The result of A & M is not stored.
+    /// 
+    /// A & M, N = M7, V = M6
+    /// 
+    /// Status flags set:
+    /// * Z - if the AND result is 0
+    /// * V - equal to bit 6 of M
+    /// * N - equal to bit 7 of M
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#BIT
     fn bit(&mut self) -> u8 {
+        self.fetch();
+
+        self.set_status_flag(StatusFlag::Z, self.a & self.m == 0);
+        self.set_status_flag(StatusFlag::V, self.m & (1 << 6) > 0);
+        self.set_status_flag(StatusFlag::N, self.m & (1 << 7) > 0);
+
         0
     }
 
@@ -413,9 +443,23 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// "Exclusive-Or" M with A
+    /// Logical XOR.
+    /// 
+    /// A,Z,N = A ^ M
+    /// 
+    /// Status flags set:
+    /// * Z - if A == 0
+    /// * N - if bit 7 of A is set
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#EOR
     fn eor(&mut self) -> u8 {
-        0
+        self.fetch();
+
+        self.a ^= self.m;
+        self.set_status_flag(StatusFlag::Z, self.a == 0);
+        self.set_status_flag(StatusFlag::N, self.a & (1 << 7) > 0);
+
+        1
     }
 
     /// Increment M by One
@@ -468,9 +512,23 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// "OR" M with A
+    /// Logical OR.
+    /// 
+    /// A,Z,N = A | M
+    /// 
+    /// Status flags set:
+    /// * Z - if A == 0
+    /// * N - if bit 7 of A is set
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#ORA
     fn ora(&mut self) -> u8 {
-        0
+        self.fetch();
+
+        self.a |= self.m;
+        self.set_status_flag(StatusFlag::Z, self.a == 0);
+        self.set_status_flag(StatusFlag::N, self.a & (1 << 7) > 0);
+
+        1
     }
 
     /// Push A on Stack
@@ -1222,5 +1280,71 @@ mod tests {
         expect!(v).to(be_eq(0));
         expect!(cpu.addr).to(be_eq(0x0000));
         expect!(cpu.p_ctr).to(be_eq(0x0001));
+    }
+
+    #[test]
+    fn and() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0b00000000);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.a = 0b10101010;
+        cpu.set_status_flag(StatusFlag::N, true);
+
+        let v = cpu.and();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.a).to(be_eq(0b00000000));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn bit() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0b00000000);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.a = 0b11111111;
+        cpu.set_status_flag(StatusFlag::V, true);
+        cpu.set_status_flag(StatusFlag::N, true);
+
+        let v = cpu.bit();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.a).to(be_eq(0b11111111)); // unchanged
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::V)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn eor() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0b11111111);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.a = 0b11111111;
+        cpu.set_status_flag(StatusFlag::N, true);
+
+        let v = cpu.eor();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.a).to(be_eq(0b00000000));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn ora() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0b00000000);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.a = 0b00000000;
+        cpu.set_status_flag(StatusFlag::N, true);
+
+        let v = cpu.ora();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.a).to(be_eq(0b00000000));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
     }
 }
