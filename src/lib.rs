@@ -1,3 +1,3 @@
-mod bus;
-mod cpu;
-mod model;
+pub mod bus;
+pub mod cpu;
+pub mod model;

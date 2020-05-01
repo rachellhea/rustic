@@ -11,7 +11,6 @@ pub struct Bus {
 }
 
 impl Bus {
-    #[allow(dead_code)]
     /// Construct a new Bus, instantiating its RAM block to all 0s.
     pub fn new() -> Bus {
         Bus {
@@ -50,27 +49,8 @@ impl fmt::Debug for RAM {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use expectest::prelude::*;
-
-    #[test]
-    fn instantiation() {
-        let bus = Bus::new();
-
-        expect!(bus.ram.data.iter()).to(have_count(RAM_SIZE));
-        for byte in bus.ram.data.iter() {
-            expect!(*byte).to(be_eq(0x00));
-        }
-    }
-
-    #[test]
-    fn write_and_read() {
-        let mut bus = Bus::new();
-        bus.write(0x0000, 0xAD);
-
-        let byte = bus.read(0x0000);
-        expect!(byte).to(be_eq(0xAD));
+impl Default for Bus {
+    fn default() -> Self {
+        Self::new()
     }
 }

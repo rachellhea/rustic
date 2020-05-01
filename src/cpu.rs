@@ -1,7 +1,6 @@
 use crate::bus::Bus;
 use crate::model::{Instruction, StatusFlag};
 
-#[allow(dead_code)]
 /// Core data structure for emulating a 6502 CPU.
 pub struct CPU<'a> {
     /// A hook to the bus, which serves as our interface through which we can read from and write to
@@ -10,17 +9,17 @@ pub struct CPU<'a> {
     /// The status code. This is a bitmask composed of a number of flags, each of which serves to
     /// surface some meaning about the state of the CPU and its last executed instruction.
     /// See: model::StatusFlag
-    stat: u8,
+    pub stat: u8,
     // The accumulator register.
-    a: u8,
+    pub a: u8,
     // The X register.
-    x: u8,
+    pub x: u8,
     // The Y register.
-    y: u8,
+    pub y: u8,
     // The stack pointer.
-    stk_ptr: u8,
+    pub stk_ptr: u8,
     // The program counter.
-    p_ctr: u16,
+    pub p_ctr: u16,
     // A reference bank for data fetched from memory.
     m: u8,
     // The address (absolute) from which we'll fetch data from memory.
@@ -36,15 +35,14 @@ pub struct CPU<'a> {
 }
 
 impl<'a> CPU<'a> {
-    #[allow(dead_code)]
     /// Construct a new CPU instance with the given Bus hook.
     pub fn new(bus: &'a mut Bus) -> CPU<'a> {
         CPU {
             bus:      Box::new(bus),
             stat:     0x00,
-            a: 	      0x00,
-            x: 	      0x00,
-            y: 	      0x00,
+            a:        0x00,
+            x:        0x00,
+            y:        0x00,
             stk_ptr:  0xFD,
             p_ctr:    0x0000,
             m:        0x00,
@@ -55,7 +53,6 @@ impl<'a> CPU<'a> {
         }
     }
 
-    #[allow(dead_code)]
     /// Iterate forward one clock cycle. Accept the input associated with that clock
     /// cycle and act on it.
     pub fn clock(&mut self) {
@@ -75,7 +72,17 @@ impl<'a> CPU<'a> {
         self.cycles -= 1;
     }
 
-    #[allow(dead_code)]
+    /// Retrieve the boolean value of a particular flag in the status code.
+    pub fn get_status_flag(&self, status_flag: StatusFlag) -> bool {
+        (self.stat & (status_flag as u8)) != 0
+    }
+    
+    /// Convenience function for flipping on the interrupt flag, as it is impossible to do
+    /// so through other public library functions.
+    pub fn set_interrupt_flag(&mut self, v: bool) {
+        self.set_status_flag(StatusFlag::I, v);
+    }
+
     /// Request an interrupt. This can be ignored if the I flag on the status code is set.
     pub fn interrupt(&mut self) {
         if self.get_status_flag(StatusFlag::I) {
@@ -85,7 +92,6 @@ impl<'a> CPU<'a> {
         self.interrupt_and_set_address_to(0xFFFE);
     }
 
-    #[allow(dead_code)]
     /// Demand an interrupt. This one cannot be ignored.
     /// This code is *mostly* equivalent to irq, with the only difference being the address
     /// that we read to determine the value for the program counter.
@@ -93,7 +99,6 @@ impl<'a> CPU<'a> {
         self.interrupt_and_set_address_to(0xFFFA);
     }
 
-    #[allow(dead_code)]
     /// Reset the CPU to a known state:
     /// 
     /// * All registers (A, X, Y, and M) are set to 0
@@ -120,7 +125,6 @@ impl<'a> CPU<'a> {
         self.cycles = 8;
     }
 
-    #[allow(dead_code)]
     /// Fetch the data at the currently specified address and save it into the M register.
     /// Strictly speaking, this does not need to return a value. But it's easy, and potentially
     /// convenient.
@@ -203,7 +207,7 @@ impl<'a> CPU<'a> {
         if lo == 0x00FF {
             self.addr = ((self.read(pointer & 0xFF00) as u16) << 8) | self.read(pointer) as u16;
         } else {
-            self.addr = self.read(pointer + 1) as u16 | self.read(pointer) as u16;
+            self.addr = ((self.read(pointer + 1) as u16) << 8) | self.read(pointer) as u16;
         }
 
         0
@@ -214,8 +218,8 @@ impl<'a> CPU<'a> {
     /// of the table is what is provided to the instruction, and the X register is added to simulate
     /// indexing (with zero page wrap-around).
     /// 
-    /// Reference: http://www.obelisk.me.uk/6502/addressing.html#IZX
-    fn izx(&mut self) -> u8 {
+    /// Reference: http://www.obelisk.me.uk/6502/addressing.html#IDX
+    fn idx(&mut self) -> u8 {
         let (p, _, _) = self.read_address_from_bus();
         let pointer = p + self.x as u16;
 
@@ -232,15 +236,15 @@ impl<'a> CPU<'a> {
     /// 
     /// If the incrementing requires a page change, then we signal for an additional clock cycle.
     /// 
-    /// Reference: http://www.obelisk.me.uk/6502/addressing.html#IZY
-    fn izy(&mut self) -> u8 {
+    /// Reference: http://www.obelisk.me.uk/6502/addressing.html#IDY
+    fn idy(&mut self) -> u8 {
         let (pointer, _, _) = self.read_address_from_bus();
     
         let lo: u16 = self.read(pointer & 0x00FF) as u16;
         let hi: u16 = self.read((pointer + 1) & 0x00FF) as u16;
         self.addr = ((hi << 8) | lo) + (self.y as u16);
 
-        ((self.addr & 0xFF00) == (hi << 8)) as u8
+        ((self.addr & 0xFF00) != (hi << 8)) as u8
     }
 
     /// Relative addressing. A signed 8-bit relative offset is provided as input to be loaded.
@@ -254,8 +258,8 @@ impl<'a> CPU<'a> {
         // The input byte can be negative, which represents a backward jump. In order to represent
         // that as a full 16-bit address, we just set the page byte of the address to 31 (0xFF).
         // e.g.,
-        // 		Input byte: 0x83 (0000000010000011)
-        //		i & 0x80 = (0000000010000011) & (0000000010000000) = 0000000010000000 > 0
+        //      Input byte: 0x83 (0000000010000011)
+        //      i & 0x80 = (0000000010000011) & (0000000010000000) = 0000000010000000 > 0
         //      i | 0xFF00 = (10000011) | (1111111100000000) = 1111111110000011 (jump back by 3)
         if self.addr_rel & 0x80 > 0 {
             self.addr_rel |= 0xFF00;
@@ -586,8 +590,8 @@ impl<'a> CPU<'a> {
     /// and the register exceed $FF. If we repeat the last example but with $FF in the X register
     /// then the accumulator will be loaded from $007F (e.g. $80 + $FF => $7F) and not $017F.
     fn zero_page(&mut self, offset: u8) -> u8 {
-        self.a = self.read(self.p_ctr) + offset;
-        self.a &= 0x00FF;
+        self.addr = self.read(self.p_ctr) as u16 + offset as u16;
+        self.addr &= 0x00FF;
         self.p_ctr += 1;
 
         0
@@ -610,12 +614,8 @@ impl<'a> CPU<'a> {
     /// Read an address from the input buffer in two-byte form (offset -> page) and increment the
     /// result with an offset value.
     fn read_address_with_value_offset(&mut self, v: u16) -> u8 {
-        let lo: u16 = self.read(self.p_ctr) as u16;
-        self.p_ctr += 1;
-        let hi: u16 = self.read(self.p_ctr) as u16;
-        self.p_ctr += 1;
-
-        self.addr = ((hi << 8) | lo) + v;
+        let (ptr, hi, _) = self.read_address_from_bus();
+        self.addr = ptr + v;
         
         // Check if we have moved to a different page after incrementing. If we have, then we need
         // an additional clock cycle.
@@ -644,6 +644,15 @@ impl<'a> CPU<'a> {
         self.p_ctr = (hi << 8) | lo;
         self.cycles = 7;
     }
+    
+    /// Set the boolean value of a particular flag in the status code.
+    fn set_status_flag(&mut self, status_flag: StatusFlag, v: bool) {
+        if v {
+            self.stat |= status_flag as u8;
+        } else {
+            self.stat &= !(status_flag as u8);
+        }
+    }
 
     /// Read data from the connected Bus.
     fn read(&self, addr: u16) -> u8 {
@@ -659,20 +668,6 @@ impl<'a> CPU<'a> {
             .write(addr, data);
     }
 
-    /// Retrieve the boolean value of a particular flag in the status code.
-    fn get_status_flag(&self, status_flag: StatusFlag) -> bool {
-        (self.stat & (status_flag as u8)) != 0
-    }
-    
-    /// Set the boolean value of a particular flag in the status code.
-    fn set_status_flag(&mut self, status_flag: StatusFlag, v: bool) {
-        if v {
-            self.stat |= status_flag as u8;
-        } else {
-            self.stat &= !(status_flag as u8);
-        }
-    }
-
     /// Instruction interpreter. This reads the opcode set on the CPU and returns some data about
     /// the instruction that is associated with that opcode. Each instruction contains:
     /// 
@@ -684,7 +679,7 @@ impl<'a> CPU<'a> {
     fn interpret_instruction(&self) -> Instruction<'a> {
         match self.opcode {
             0x00 => Instruction { name: "BRK", cycles: 7, operate: Box::new(CPU::brk), address_mode: Box::new(CPU::imm) },
-            0x01 => Instruction { name: "ORA", cycles: 6, operate: Box::new(CPU::ora), address_mode: Box::new(CPU::izx) },
+            0x01 => Instruction { name: "ORA", cycles: 6, operate: Box::new(CPU::ora), address_mode: Box::new(CPU::idx) },
             0x02 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x03 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x04 => Instruction { name: "XXX", cycles: 3, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
@@ -700,7 +695,7 @@ impl<'a> CPU<'a> {
             0x0E => Instruction { name: "ASL", cycles: 6, operate: Box::new(CPU::asl), address_mode: Box::new(CPU::abs) },
             0x0F => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x10 => Instruction { name: "BPL", cycles: 2, operate: Box::new(CPU::bpl), address_mode: Box::new(CPU::rel) },
-            0x11 => Instruction { name: "ORA", cycles: 5, operate: Box::new(CPU::ora), address_mode: Box::new(CPU::izy) },
+            0x11 => Instruction { name: "ORA", cycles: 5, operate: Box::new(CPU::ora), address_mode: Box::new(CPU::idy) },
             0x12 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x13 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x14 => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
@@ -716,7 +711,7 @@ impl<'a> CPU<'a> {
             0x1E => Instruction { name: "ASL", cycles: 7, operate: Box::new(CPU::asl), address_mode: Box::new(CPU::abx) },
             0x1F => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x20 => Instruction { name: "JSR", cycles: 6, operate: Box::new(CPU::jsr), address_mode: Box::new(CPU::abs) },
-            0x21 => Instruction { name: "AND", cycles: 6, operate: Box::new(CPU::and), address_mode: Box::new(CPU::izx) },
+            0x21 => Instruction { name: "AND", cycles: 6, operate: Box::new(CPU::and), address_mode: Box::new(CPU::idx) },
             0x22 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x23 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x24 => Instruction { name: "BIT", cycles: 3, operate: Box::new(CPU::bit), address_mode: Box::new(CPU::zpg) },
@@ -732,7 +727,7 @@ impl<'a> CPU<'a> {
             0x2E => Instruction { name: "ROL", cycles: 6, operate: Box::new(CPU::rol), address_mode: Box::new(CPU::abs) },
             0x2F => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x30 => Instruction { name: "BMI", cycles: 2, operate: Box::new(CPU::bmi), address_mode: Box::new(CPU::rel) },
-            0x31 => Instruction { name: "AND", cycles: 5, operate: Box::new(CPU::and), address_mode: Box::new(CPU::izy) },
+            0x31 => Instruction { name: "AND", cycles: 5, operate: Box::new(CPU::and), address_mode: Box::new(CPU::idy) },
             0x32 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x33 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x34 => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
@@ -748,7 +743,7 @@ impl<'a> CPU<'a> {
             0x3E => Instruction { name: "ROL", cycles: 7, operate: Box::new(CPU::rol), address_mode: Box::new(CPU::abx) },
             0x3F => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x40 => Instruction { name: "RTI", cycles: 6, operate: Box::new(CPU::rti), address_mode: Box::new(CPU::imp) },
-            0x41 => Instruction { name: "EOR", cycles: 6, operate: Box::new(CPU::eor), address_mode: Box::new(CPU::izx) },
+            0x41 => Instruction { name: "EOR", cycles: 6, operate: Box::new(CPU::eor), address_mode: Box::new(CPU::idx) },
             0x42 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x43 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x44 => Instruction { name: "XXX", cycles: 3, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
@@ -764,7 +759,7 @@ impl<'a> CPU<'a> {
             0x4E => Instruction { name: "LSR", cycles: 6, operate: Box::new(CPU::lsr), address_mode: Box::new(CPU::abs) },
             0x4F => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x50 => Instruction { name: "BVC", cycles: 2, operate: Box::new(CPU::bvc), address_mode: Box::new(CPU::rel) },
-            0x51 => Instruction { name: "EOR", cycles: 5, operate: Box::new(CPU::eor), address_mode: Box::new(CPU::izy) },
+            0x51 => Instruction { name: "EOR", cycles: 5, operate: Box::new(CPU::eor), address_mode: Box::new(CPU::idy) },
             0x52 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x53 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x54 => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
@@ -780,7 +775,7 @@ impl<'a> CPU<'a> {
             0x5E => Instruction { name: "LSR", cycles: 7, operate: Box::new(CPU::lsr), address_mode: Box::new(CPU::abx) },
             0x5F => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x60 => Instruction { name: "RTS", cycles: 6, operate: Box::new(CPU::rts), address_mode: Box::new(CPU::imp) },
-            0x61 => Instruction { name: "ADC", cycles: 6, operate: Box::new(CPU::adc), address_mode: Box::new(CPU::izx) },
+            0x61 => Instruction { name: "ADC", cycles: 6, operate: Box::new(CPU::adc), address_mode: Box::new(CPU::idx) },
             0x62 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x63 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x64 => Instruction { name: "XXX", cycles: 3, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
@@ -796,7 +791,7 @@ impl<'a> CPU<'a> {
             0x6E => Instruction { name: "ROR", cycles: 6, operate: Box::new(CPU::ror), address_mode: Box::new(CPU::abs) },
             0x6F => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x70 => Instruction { name: "BVS", cycles: 2, operate: Box::new(CPU::bvs), address_mode: Box::new(CPU::rel) },
-            0x71 => Instruction { name: "ADC", cycles: 5, operate: Box::new(CPU::adc), address_mode: Box::new(CPU::izy) },
+            0x71 => Instruction { name: "ADC", cycles: 5, operate: Box::new(CPU::adc), address_mode: Box::new(CPU::idy) },
             0x72 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x73 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x74 => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
@@ -812,7 +807,7 @@ impl<'a> CPU<'a> {
             0x7E => Instruction { name: "ROR", cycles: 7, operate: Box::new(CPU::ror), address_mode: Box::new(CPU::abx) },
             0x7F => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x80 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
-            0x81 => Instruction { name: "STA", cycles: 6, operate: Box::new(CPU::sta), address_mode: Box::new(CPU::izx) },
+            0x81 => Instruction { name: "STA", cycles: 6, operate: Box::new(CPU::sta), address_mode: Box::new(CPU::idx) },
             0x82 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
             0x83 => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x84 => Instruction { name: "STY", cycles: 3, operate: Box::new(CPU::sty), address_mode: Box::new(CPU::zpg) },
@@ -828,7 +823,7 @@ impl<'a> CPU<'a> {
             0x8E => Instruction { name: "STX", cycles: 4, operate: Box::new(CPU::stx), address_mode: Box::new(CPU::abs) },
             0x8F => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x90 => Instruction { name: "BCC", cycles: 2, operate: Box::new(CPU::bcc), address_mode: Box::new(CPU::rel) },
-            0x91 => Instruction { name: "STA", cycles: 6, operate: Box::new(CPU::sta), address_mode: Box::new(CPU::izy) },
+            0x91 => Instruction { name: "STA", cycles: 6, operate: Box::new(CPU::sta), address_mode: Box::new(CPU::idy) },
             0x92 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x93 => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x94 => Instruction { name: "STY", cycles: 4, operate: Box::new(CPU::sty), address_mode: Box::new(CPU::zpx) },
@@ -844,7 +839,7 @@ impl<'a> CPU<'a> {
             0x9E => Instruction { name: "XXX", cycles: 5, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0x9F => Instruction { name: "XXX", cycles: 5, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xA0 => Instruction { name: "LDY", cycles: 2, operate: Box::new(CPU::ldy), address_mode: Box::new(CPU::imm) },
-            0xA1 => Instruction { name: "LDA", cycles: 6, operate: Box::new(CPU::lda), address_mode: Box::new(CPU::izx) },
+            0xA1 => Instruction { name: "LDA", cycles: 6, operate: Box::new(CPU::lda), address_mode: Box::new(CPU::idx) },
             0xA2 => Instruction { name: "LDX", cycles: 2, operate: Box::new(CPU::ldx), address_mode: Box::new(CPU::imm) },
             0xA3 => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xA4 => Instruction { name: "LDY", cycles: 3, operate: Box::new(CPU::ldy), address_mode: Box::new(CPU::zpg) },
@@ -860,7 +855,7 @@ impl<'a> CPU<'a> {
             0xAE => Instruction { name: "LDX", cycles: 4, operate: Box::new(CPU::ldx), address_mode: Box::new(CPU::abs) },
             0xAF => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xB0 => Instruction { name: "BCS", cycles: 2, operate: Box::new(CPU::bcs), address_mode: Box::new(CPU::rel) },
-            0xB1 => Instruction { name: "LDA", cycles: 5, operate: Box::new(CPU::lda), address_mode: Box::new(CPU::izy) },
+            0xB1 => Instruction { name: "LDA", cycles: 5, operate: Box::new(CPU::lda), address_mode: Box::new(CPU::idy) },
             0xB2 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xB3 => Instruction { name: "XXX", cycles: 5, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xB4 => Instruction { name: "LDY", cycles: 4, operate: Box::new(CPU::ldy), address_mode: Box::new(CPU::zpx) },
@@ -876,7 +871,7 @@ impl<'a> CPU<'a> {
             0xBE => Instruction { name: "LDX", cycles: 4, operate: Box::new(CPU::ldx), address_mode: Box::new(CPU::aby) },
             0xBF => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xC0 => Instruction { name: "CPY", cycles: 2, operate: Box::new(CPU::cpy), address_mode: Box::new(CPU::imm) },
-            0xC1 => Instruction { name: "CMP", cycles: 6, operate: Box::new(CPU::cmp), address_mode: Box::new(CPU::izx) },
+            0xC1 => Instruction { name: "CMP", cycles: 6, operate: Box::new(CPU::cmp), address_mode: Box::new(CPU::idx) },
             0xC2 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
             0xC3 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xC4 => Instruction { name: "CPY", cycles: 3, operate: Box::new(CPU::cpy), address_mode: Box::new(CPU::zpg) },
@@ -892,7 +887,7 @@ impl<'a> CPU<'a> {
             0xCE => Instruction { name: "DEC", cycles: 6, operate: Box::new(CPU::dec), address_mode: Box::new(CPU::abs) },
             0xCF => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xD0 => Instruction { name: "BNE", cycles: 2, operate: Box::new(CPU::bne), address_mode: Box::new(CPU::rel) },
-            0xD1 => Instruction { name: "CMP", cycles: 5, operate: Box::new(CPU::cmp), address_mode: Box::new(CPU::izy) },
+            0xD1 => Instruction { name: "CMP", cycles: 5, operate: Box::new(CPU::cmp), address_mode: Box::new(CPU::idy) },
             0xD2 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xD3 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xD4 => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
@@ -908,7 +903,7 @@ impl<'a> CPU<'a> {
             0xDE => Instruction { name: "DEC", cycles: 7, operate: Box::new(CPU::dec), address_mode: Box::new(CPU::abx) },
             0xDF => Instruction { name: "XXX", cycles: 7, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xE0 => Instruction { name: "CPX", cycles: 2, operate: Box::new(CPU::cpx), address_mode: Box::new(CPU::imm) },
-            0xE1 => Instruction { name: "SBC", cycles: 6, operate: Box::new(CPU::sbc), address_mode: Box::new(CPU::izx) },
+            0xE1 => Instruction { name: "SBC", cycles: 6, operate: Box::new(CPU::sbc), address_mode: Box::new(CPU::idx) },
             0xE2 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
             0xE3 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xE4 => Instruction { name: "CPX", cycles: 3, operate: Box::new(CPU::cpx), address_mode: Box::new(CPU::zpg) },
@@ -924,7 +919,7 @@ impl<'a> CPU<'a> {
             0xEE => Instruction { name: "INC", cycles: 6, operate: Box::new(CPU::inc), address_mode: Box::new(CPU::abs) },
             0xEF => Instruction { name: "XXX", cycles: 6, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xF0 => Instruction { name: "BEQ", cycles: 2, operate: Box::new(CPU::beq), address_mode: Box::new(CPU::rel) },
-            0xF1 => Instruction { name: "SBC", cycles: 5, operate: Box::new(CPU::sbc), address_mode: Box::new(CPU::izy) },
+            0xF1 => Instruction { name: "SBC", cycles: 5, operate: Box::new(CPU::sbc), address_mode: Box::new(CPU::idy) },
             0xF2 => Instruction { name: "XXX", cycles: 2, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xF3 => Instruction { name: "XXX", cycles: 8, operate: Box::new(CPU::xxx), address_mode: Box::new(CPU::imp) },
             0xF4 => Instruction { name: "XXX", cycles: 4, operate: Box::new(CPU::nop), address_mode: Box::new(CPU::imp) },
@@ -949,93 +944,283 @@ mod tests {
     use expectest::prelude::*;
 
     #[test]
-    fn clock_cycle() {
+    fn abs() {
         let mut bus = Bus::new();
-        bus.write(0x0000, 0x00); // BRK instruction, IMM addressing mode
-        bus.write(0x0001, 0x10); // IMM value provided is 16
-
+        bus.write(0x0001, 0x01);
         let mut cpu = CPU::new(&mut bus);
-        cpu.clock();
 
-        expect!(cpu.cycles).to(be_equal_to(6)); // BRK + IMM takes 7 cycles, and we have issued 1
-        expect!(cpu.a).to(be_equal_to(0x0001)); // The next byte of input after the opcode is the value of the instruction's input
+        let v = cpu.abs();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.addr).to(be_eq(0x0100));
+        expect!(cpu.p_ctr).to(be_eq(0x0002));
     }
 
     #[test]
-    fn clock_cycle_next() {
+    fn abx() {
         let mut bus = Bus::new();
-        bus.write(0x0000, 0x00); // BRK instruction, IMM addressing mode
-        bus.write(0x0001, 0x10); // IMM value provided is 16
+        bus.write(0x0001, 0x01);
 
         let mut cpu = CPU::new(&mut bus);
-        cpu.clock();
-        cpu.clock();
+        cpu.x = 0x04;
 
-        expect!(cpu.cycles).to(be_equal_to(5)); // Second cycle consumed, so expect 5
-        expect!(cpu.a).to(be_equal_to(0x0001)); // Value in A has not changed
+        let v = cpu.abx();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.addr).to(be_eq(0x0104));
+        expect!(cpu.p_ctr).to(be_eq(0x0002));
     }
 
     #[test]
-    fn interrupt_ignored() {
+    fn abx_with_page_turn() {
         let mut bus = Bus::new();
-        let mut cpu = CPU::new(&mut bus);
-        cpu.set_status_flag(StatusFlag::I, true);
-        cpu.interrupt();
+        bus.write(0x0000, 0xFF);
+        bus.write(0x0001, 0x01);
 
-        expect!(cpu.addr).to_not(be_equal_to(0xFFFE)); // Make sure we did nothing
+        let mut cpu = CPU::new(&mut bus);
+        cpu.x = 0x04;
+
+        let v = cpu.abx();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.addr).to(be_eq(0x0203));
+        expect!(cpu.p_ctr).to(be_eq(0x0002));
     }
 
     #[test]
-    fn interrupt_followed() {
+    fn aby() {
         let mut bus = Bus::new();
-        let mut cpu = CPU::new(&mut bus);
-        cpu.set_status_flag(StatusFlag::I, false);
-        cpu.interrupt();
+        bus.write(0x0001, 0x01);
 
-        expect!(cpu.addr).to(be_equal_to(0xFFFE));
+        let mut cpu = CPU::new(&mut bus);
+        cpu.y = 0x04;
+
+        let v = cpu.aby();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.addr).to(be_eq(0x0104));
+        expect!(cpu.p_ctr).to(be_eq(0x0002));
     }
 
     #[test]
-    fn interrupt_no_mask_cannot_ignore() {
+    fn aby_with_page_turn() {
         let mut bus = Bus::new();
-        let mut cpu = CPU::new(&mut bus);
-        cpu.set_status_flag(StatusFlag::I, true);
-        cpu.interrupt_no_mask();
+        bus.write(0x0000, 0xFF);
+        bus.write(0x0001, 0x01);
 
-        expect!(cpu.addr).to(be_equal_to(0xFFFA));
+        let mut cpu = CPU::new(&mut bus);
+        cpu.y = 0x04;
+
+        let v = cpu.aby();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.addr).to(be_eq(0x0203));
+        expect!(cpu.p_ctr).to(be_eq(0x0002));
     }
 
     #[test]
-    fn reset() {
+    fn imp() {
         let mut bus = Bus::new();
-        bus.write(0xFFFC, 0x10);
-        bus.write(0xFFFD, 0x10);
 
         let mut cpu = CPU::new(&mut bus);
-        cpu.reset();
+        cpu.a = 0x10;
 
-        expect!(cpu.a).to(be_equal_to(0x00));
-        expect!(cpu.x).to(be_equal_to(0x00));
-        expect!(cpu.y).to(be_equal_to(0x00));
-        expect!(cpu.m).to(be_equal_to(0x00));
-        expect!(cpu.stk_ptr).to(be_equal_to(0xFD));
-        expect!(cpu.stat).to(be_equal_to(0b00100000)); // Only U is set (Unused)
-        expect!(cpu.p_ctr).to(be_equal_to(0x1010));
-        expect!(cpu.addr).to(be_equal_to(0x0000));
-        expect!(cpu.addr_rel).to(be_equal_to(0x0000));
-        expect!(cpu.cycles).to(be_equal_to(8));
+        let v = cpu.imp();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.m).to(be_eq(cpu.a));
     }
 
     #[test]
-    fn fetch() {
+    fn imm() {
         let mut bus = Bus::new();
-        bus.write(0xFFFC, 0x10);
 
         let mut cpu = CPU::new(&mut bus);
-        cpu.addr = 0xFFFC;
-        let fetched = cpu.fetch();
+        cpu.p_ctr = 0x00FF;
 
-        expect!(cpu.m).to(be_equal_to(0x10));
-        expect!(fetched).to(be_equal_to(0x10));
+        let v = cpu.imm();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.a).to(be_eq(0x00FF));
+        expect!(cpu.p_ctr).to(be_eq(0x0100));
+    }
+
+    #[test]
+    fn ind() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0xFE);
+        bus.write(0x0001, 0xDD);
+        bus.write(0xDDFE, 0x0D);
+        bus.write(0xDDFF, 0xD0);
+
+        let mut cpu = CPU::new(&mut bus);
+        
+        let v = cpu.ind();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.addr).to(be_eq(0xD00D));
+        expect!(cpu.p_ctr).to(be_eq(0x0002));
+    }
+
+    #[test]
+    fn ind_low_byte_is_ff() {
+        // We simulate the hardware bug here; reading at PC gives us
+        // the address 0xDDFF. The hardware here would only increment
+        // the lower byte of the address without spilling that into the
+        // overflow of the resulting address. Thus, the high byte will
+        // originate from address 0xDD00, NOT 0xDE00 (as math says)
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0xFF);
+        bus.write(0x0001, 0xDD);
+        bus.write(0xDDFF, 0x0D);
+        bus.write(0xDD00, 0xD0);
+
+        let mut cpu = CPU::new(&mut bus);
+        
+        let v = cpu.ind();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.addr).to(be_eq(0xD00D));
+        expect!(cpu.p_ctr).to(be_eq(0x0002));
+    }
+
+    #[test]
+    fn idx() {
+        let mut bus = Bus::new();
+        bus.write(0x0100, 0xFF);
+        bus.write(0x0101, 0xDD);
+        bus.write(0x0000, 0x0D);
+        bus.write(0x0001, 0xD0);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.x = 0x01;
+        cpu.p_ctr = 0x0100;
+
+        let v = cpu.idx();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.addr).to(be_eq(0xD00D));
+        expect!(cpu.p_ctr).to(be_eq(0x0102));
+    }
+
+    #[test]
+    fn idy() {
+        let mut bus = Bus::new();
+        bus.write(0x0100, 0xFE);
+        bus.write(0x0101, 0xDD);
+        bus.write(0x00FE, 0x0D);
+        bus.write(0x00FF, 0xD0);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.y = 0x01;
+        cpu.p_ctr = 0x0100;
+
+        let v = cpu.idy();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.addr).to(be_eq(0xD00E));
+        expect!(cpu.p_ctr).to(be_eq(0x0102));
+    }
+
+    #[test]
+    fn idy_page_change() {
+        let mut bus = Bus::new();
+        bus.write(0x0100, 0xFE);
+        bus.write(0x0101, 0xDD);
+        bus.write(0x00FE, 0xFF);
+        bus.write(0x00FF, 0xD0);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.y = 0x01;
+        cpu.p_ctr = 0x0100;
+
+        let v = cpu.idy();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.addr).to(be_eq(0xD100));
+        expect!(cpu.p_ctr).to(be_eq(0x0102));
+    }
+
+    #[test]
+    fn rel_forward() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0x10);
+
+        let mut cpu = CPU::new(&mut bus);
+        
+        let v = cpu.rel();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.addr_rel).to(be_eq(0x0010));
+        expect!(cpu.p_ctr).to(be_eq(0x0001));
+    }
+
+    #[test]
+    fn rel_backward() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0xF0);
+
+        let mut cpu = CPU::new(&mut bus);
+        
+        let v = cpu.rel();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.addr_rel).to(be_eq(0xFFF0));
+        expect!(cpu.p_ctr).to(be_eq(0x0001));
+    }
+
+    #[test]
+    fn zpg() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0xFF);
+
+        let mut cpu = CPU::new(&mut bus);
+
+        let v = cpu.zpg();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.addr).to(be_eq(0x00FF));
+        expect!(cpu.p_ctr).to(be_eq(0x0001));
+    }
+
+    #[test]
+    fn zpx() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0xFE);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.x = 0x01;
+
+        let v = cpu.zpx();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.addr).to(be_eq(0x00FF));
+        expect!(cpu.p_ctr).to(be_eq(0x0001));
+    }
+
+    #[test]
+    fn zpx_page_change() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0xFF);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.x = 0x01;
+
+        let v = cpu.zpx();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.addr).to(be_eq(0x0000));
+        expect!(cpu.p_ctr).to(be_eq(0x0001));
+    }
+
+    #[test]
+    fn zpy() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0xFE);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.y = 0x01;
+
+        let v = cpu.zpy();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.addr).to(be_eq(0x00FF));
+        expect!(cpu.p_ctr).to(be_eq(0x0001));
+    }
+
+    #[test]
+    fn zpy_page_change() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0xFF);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.y = 0x01;
+
+        let v = cpu.zpy();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.addr).to(be_eq(0x0000));
+        expect!(cpu.p_ctr).to(be_eq(0x0001));
     }
 }
