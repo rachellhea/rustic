@@ -609,13 +609,37 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Transfer A to X
+    /// Transfer A to X.
+    /// 
+    /// X = A
+    /// 
+    /// Status flags set:
+    /// * Z - if X == 0
+    /// * N - if bit 7 of X is set
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#TAX
     fn tax(&mut self) -> u8 {
+        self.x = self.a;
+        self.set_status_flag(StatusFlag::Z, self.x == 0);
+        self.set_status_flag(StatusFlag::N, self.x & (1 << 7) > 0);
+
         0
     }
 
-    /// Transfer A to Y
+    /// Transfer A to Y.
+    /// 
+    /// Y = A
+    /// 
+    /// Status flags set:
+    /// * Z - if Y == 0
+    /// * N - if bit 7 of Y is set
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#TAY
     fn tay(&mut self) -> u8 {
+        self.y = self.a;
+        self.set_status_flag(StatusFlag::Z, self.y == 0);
+        self.set_status_flag(StatusFlag::N, self.y & (1 << 7) > 0);
+
         0
     }
 
@@ -624,8 +648,20 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Transfer X to A
+    /// Transfer X to A.
+    /// 
+    /// X = A
+    /// 
+    /// Status flags set:
+    /// * Z - if A == 0
+    /// * N - if bit 7 of A is set
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#TXA
     fn txa(&mut self) -> u8 {
+        self.a = self.x;
+        self.set_status_flag(StatusFlag::Z, self.a == 0);
+        self.set_status_flag(StatusFlag::N, self.a & (1 << 7) > 0);
+
         0
     }
 
@@ -634,8 +670,20 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Transfer Y to A
+    /// Transfer Y to A.
+    /// 
+    /// X = A
+    /// 
+    /// Status flags set:
+    /// * Z - if A == 0
+    /// * N - if bit 7 of A is set
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#TYA
     fn tya(&mut self) -> u8 {
+        self.a = self.y;
+        self.set_status_flag(StatusFlag::Z, self.a == 0);
+        self.set_status_flag(StatusFlag::N, self.a & (1 << 7) > 0);
+
         0
     }
 
@@ -1367,5 +1415,61 @@ mod tests {
         let fetched = cpu.fetch();
         expect!(fetched).to(be_eq(cpu.m));
         expect!(cpu.m).to(be_eq(0xFF));
+    }
+
+    #[test]
+    fn tax() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.x = 0xFF;
+        cpu.a = 0x00;
+
+        let v = cpu.tax();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.x).to(be_eq(0x00));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn tay() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.y = 0xFF;
+        cpu.a = 0x00;
+
+        let v = cpu.tay();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.y).to(be_eq(0x00));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn txa() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.x = 0x00;
+        cpu.a = 0xFF;
+
+        let v = cpu.txa();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.a).to(be_eq(0x00));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+    
+    #[test]
+    fn tya() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.y = 0x00;
+        cpu.a = 0xFF;
+
+        let v = cpu.tya();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.a).to(be_eq(0x00));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
     }
 }
