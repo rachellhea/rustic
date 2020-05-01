@@ -431,18 +431,57 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Decrement M by One
+    /// Decrement a value from memory.
+    /// 
+    /// M,Z,N = M - 1
+    /// 
+    /// Status flags set:
+    /// * Z - if M == 0
+    /// * N - if bit 7 of M is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#DEC
     fn dec(&mut self) -> u8 {
+        self.fetch();
+        self.m -= 1;
+        self.write(self.addr, self.m);
+
+        self.set_status_flag(StatusFlag::Z, self.m == 0);
+        self.set_status_flag(StatusFlag::N, self.m & (1 << 7) > 0);
+        
         0
     }
 
-    /// Decrement X by One
+    /// Decrement the value in the X register.
+    /// 
+    /// X,Z,N = X - 1
+    /// 
+    /// Status flags set:
+    /// * Z - if X == 0
+    /// * N - if bit 7 of X is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#DEX
     fn dex(&mut self) -> u8 {
+        self.x -= 1;
+        self.set_status_flag(StatusFlag::Z, self.x == 0);
+        self.set_status_flag(StatusFlag::N, self.x & (1 << 7) > 0);
+
         0
     }
 
-    /// Decrement Y by One
+    /// Decrement the value in the Y register.
+    /// 
+    /// Y,Z,N = Y - 1
+    /// 
+    /// Status flags set:
+    /// * Z - if Y == 0
+    /// * N - if bit 7 of Y is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#DEY
     fn dey(&mut self) -> u8 {
+        self.y -= 1;
+        self.set_status_flag(StatusFlag::Z, self.y == 0);
+        self.set_status_flag(StatusFlag::N, self.y & (1 << 7) > 0);
+
         0
     }
 
@@ -465,18 +504,57 @@ impl<'a> CPU<'a> {
         1
     }
 
-    /// Increment M by One
+    /// Increment a value from memory.
+    /// 
+    /// M,Z,N = M + 1
+    /// 
+    /// Status flags set:
+    /// * Z - if M == 0
+    /// * N - if bit 7 of M is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#INC
     fn inc(&mut self) -> u8 {
+        self.fetch();
+        self.m += 1;
+        self.write(self.addr, self.m);
+
+        self.set_status_flag(StatusFlag::Z, self.m == 0);
+        self.set_status_flag(StatusFlag::N, self.m & (1 << 7) > 0);
+        
         0
     }
 
-    /// Increment X by One
+    /// Increment the value in the X register.
+    /// 
+    /// X,Z,N = X + 1
+    /// 
+    /// Status flags set:
+    /// * Z - if X == 0
+    /// * N - if bit 7 of X is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#INX
     fn inx(&mut self) -> u8 {
+        self.x += 1;
+        self.set_status_flag(StatusFlag::Z, self.x == 0);
+        self.set_status_flag(StatusFlag::N, self.x & (1 << 7) > 0);
+
         0
     }
 
-    /// Increment Y by One
+    /// Increment the value in the Y register.
+    /// 
+    /// Y,Z,N = Y + 1
+    /// 
+    /// Status flags set:
+    /// * Z - if Y == 0
+    /// * N - if bit 7 of Y is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#INY
     fn iny(&mut self) -> u8 {
+        self.y += 1;
+        self.set_status_flag(StatusFlag::Z, self.y == 0);
+        self.set_status_flag(StatusFlag::N, self.y & (1 << 7) > 0);
+
         0
     }
 
@@ -1762,5 +1840,87 @@ mod tests {
         expect!(v).to(be_eq(0));
         expect!(cpu.stk_ptr).to(be_eq(0xFD)); // came back to 0xFD after pull
         expect!(cpu.read(0x01FD)).to(be_eq(cpu.stat));
+    }
+
+    #[test]
+    fn inc() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0x7F);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr = 0x0000;
+        
+        let v = cpu.inc();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.m).to(be_eq(0x80));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_true());
+    }
+
+    #[test]
+    fn inx() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.x = 0x7F;
+        
+        let v = cpu.inx();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.x).to(be_eq(0x80));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_true());
+    }
+
+    #[test]
+    fn iny() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.y = 0x7F;
+        
+        let v = cpu.iny();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.y).to(be_eq(0x80));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_true());
+    }
+
+    #[test]
+    fn dec() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0x80);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr = 0x0000;
+        
+        let v = cpu.dec();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.m).to(be_eq(0x7F));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn dex() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.x = 0x80;
+        
+        let v = cpu.dex();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.x).to(be_eq(0x7F));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn dey() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.y = 0x80;
+        
+        let v = cpu.dey();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.y).to(be_eq(0x7F));
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
     }
 }
