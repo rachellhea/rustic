@@ -73,8 +73,8 @@ impl<'a> CPU<'a> {
 
             // Execute the instruction. If at least one additional cycle is needed,
             // then increment the cycles counter.
-            let addrmode_cycles = get_addressing_mode(&instruction.addr_mode)(self);
-            let opmode_cycles = get_operating_mode(&instruction.op_mode)(self);
+            let addrmode_cycles = get_addressing_mode(instruction.addr_mode)(self);
+            let opmode_cycles = get_operating_mode(instruction.op_mode)(self);
             self.cycles += addrmode_cycles & opmode_cycles;
         }
 
@@ -1184,7 +1184,7 @@ impl<'a> CPU<'a> {
 
 /// Function for defining the mapping between addressing modes and the functions on the CPU
 /// which implement them.
-fn get_addressing_mode<'a>(addr_mode: &AddressingMode) -> Box<fn(&mut CPU<'a>) -> u8> {
+fn get_addressing_mode<'a>(addr_mode: AddressingMode) -> Box<fn(&mut CPU<'a>) -> u8> {
     match addr_mode {
         AddressingMode::ABS => Box::new(CPU::abs),
         AddressingMode::ABX => Box::new(CPU::abx),
@@ -1203,7 +1203,7 @@ fn get_addressing_mode<'a>(addr_mode: &AddressingMode) -> Box<fn(&mut CPU<'a>) -
 
 /// Function for defining the mapping between operating modes and the functions on the CPU
 /// which implement them.
-fn get_operating_mode<'a>(op_mode: &OperatingMode) -> Box<fn(&mut CPU<'a>) -> u8> {
+fn get_operating_mode<'a>(op_mode: OperatingMode) -> Box<fn(&mut CPU<'a>) -> u8> {
     match op_mode {
         OperatingMode::ADC => Box::new(CPU::adc),
         OperatingMode::AND => Box::new(CPU::and),
