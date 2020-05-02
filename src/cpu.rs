@@ -471,23 +471,44 @@ impl<'a> CPU<'a> {
         self.branch_on_flag(StatusFlag::V, true)
     }
 
-    /// Clear Carry Flag
+    /// Clear Carry flag.
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#CLC
     fn clc(&mut self) -> u8 {
+        self.set_status_flag(StatusFlag::C, false);
+
         0
     }
 
-    /// Clear Decimal Mode
+    /// Clear Decimal flag.
+    /// 
+    /// From the docs: The state of the decimal flag is uncertain when the CPU
+    /// is powered up, and it is not reset when an interrupt is generated. In
+    /// either case, the programmer should include an explicit CLD to ensure
+    /// that the flag is cleared before performing any addition/subtraction.
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#CLD
     fn cld(&mut self) -> u8 {
+        self.set_status_flag(StatusFlag::D, false);
+
         0
     }
 
-    /// Clear interrupt Disable Bit
+    /// Clear Interrupt disabling flag.
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#CLI
     fn cli(&mut self) -> u8 {
+        self.set_status_flag(StatusFlag::I, false);
+
         0
     }
 
-    /// Clear Overflow Flag
+    /// Clear Overflow flag.
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#CLV
     fn clv(&mut self) -> u8 {
+        self.set_status_flag(StatusFlag::V, false);
+
         0
     }
 
@@ -907,18 +928,30 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Set Carry Flag
+    /// Set Carry flag.
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#SEC
     fn sec(&mut self) -> u8 {
+        self.set_status_flag(StatusFlag::C, true);
+
         0
     }
 
-    /// Set Decimal Mode
+    /// Set Decimal flag.
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#SEC
     fn sed(&mut self) -> u8 {
+        self.set_status_flag(StatusFlag::D, true);
+
         0
     }
 
-    /// Set Interrupt Disable Status
+    /// Set Interrupt disable flag.
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#SEC
     fn sei(&mut self) -> u8 {
+        self.set_status_flag(StatusFlag::I, true);
+
         0
     }
 
