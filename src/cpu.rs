@@ -365,19 +365,34 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Branch on Carry Clear
+    /// Branch if Carry clear. If the carry flag is clear, then add the relative
+    /// address displacement to the program counter and jump to that location.
+    /// 
+    /// No status flags affected.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#BCC
     fn bcc(&mut self) -> u8 {
-        0
+        self.branch_on_flag(StatusFlag::C, false)
     }
 
-    /// Branch on Carry Set
+    /// Branch if Carry set. If the carry flag is set, then add the relative
+    /// address displacement to the program counter and jump to that location.
+    /// 
+    /// No status flags affected.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#BCS
     fn bcs(&mut self) -> u8 {
-        0
+        self.branch_on_flag(StatusFlag::C, true)
     }
 
-    /// Branch on Result Zero
+    /// Branch if Zero set. If the zero flag is set, then add the relative
+    /// address displacement to the program counter and jump to that location.
+    /// 
+    /// No status flags affected.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#BEQ
     fn beq(&mut self) -> u8 {
-        0
+        self.branch_on_flag(StatusFlag::Z, true)
     }
 
     /// Bit test. Tests if one or more bits are set in a target memory location.
@@ -401,19 +416,34 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Branch on Result Minus
+    /// Branch if Negative set. If the negative flag is set, then add the relative
+    /// address displacement to the program counter and jump to that location.
+    /// 
+    /// No status flags affected.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#BMI
     fn bmi(&mut self) -> u8 {
-        0
+        self.branch_on_flag(StatusFlag::N, true)
     }
 
-    /// Branch on Result not Zero
+    /// Branch if Zero clear. If the zero flag is clear, then add the relative
+    /// address displacement to the program counter and jump to that location.
+    /// 
+    /// No status flags affected.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#BNE
     fn bne(&mut self) -> u8 {
-        0
+        self.branch_on_flag(StatusFlag::Z, false)
     }
 
-    /// Branch on Result Plus
+    /// Branch if Negative clear. If the negative flag is clear, then add the relative
+    /// address displacement to the program counter and jump to that location.
+    /// 
+    /// No status flags affected.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#BPL
     fn bpl(&mut self) -> u8 {
-        0
+        self.branch_on_flag(StatusFlag::N, false)
     }
 
     /// Force Break
@@ -421,14 +451,24 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Branch on Overflow Clear
+    /// Branch if Overflow clear. If the overflow flag is clear, then add the relative
+    /// address displacement to the program counter and jump to that location.
+    /// 
+    /// No status flags affected.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#BVC
     fn bvc(&mut self) -> u8 {
-        0
+        self.branch_on_flag(StatusFlag::V, false)
     }
 
-    /// Branch on Overflow Set
+    /// Branch if Overflow set. If the overflow flag is clear, then add the relative
+    /// address displacement to the program counter and jump to that location.
+    /// 
+    /// No status flags affected.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#BVS
     fn bvs(&mut self) -> u8 {
-        0
+        self.branch_on_flag(StatusFlag::V, true)
     }
 
     /// Clear Carry Flag
@@ -1119,6 +1159,26 @@ impl<'a> CPU<'a> {
     fn pull_from_stack(&mut self) -> u8 {
         self.stk_ptr += 1;
         self.read(0x0100 + self.stk_ptr as u16)
+    }
+
+    /// Add the relative address displacement value to the program counter.
+    /// 
+    /// If a page turn is detected, then we return 1.
+    fn add_relative_to_pc(&mut self) -> u8 {
+        let current_page = self.p_ctr & 0xFF00;
+        self.p_ctr += self.addr_rel as u16;
+
+        ((self.p_ctr & 0xFF00) != current_page) as u8
+    }
+
+    /// Short helper to generalize the Branch if X clear/set logic.
+    fn branch_on_flag(&mut self, flag: StatusFlag, v: bool) -> u8 {
+        if self.get_status_flag(flag) == v {
+            self.add_relative_to_pc();
+            1
+        } else {
+            0
+        }
     }
 }
 
@@ -2048,5 +2108,133 @@ mod tests {
         expect!(v).to(be_eq(0));
         expect!(cpu.p_ctr).to(be_eq(0xFFDE));
         expect!(cpu.stk_ptr).to(be_eq(0xFD));
+    }
+
+    #[test]
+    fn add_relative_to_pc() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr_rel = 0x0010;
+        cpu.p_ctr = 0x0000;
+
+        let v = cpu.add_relative_to_pc();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.p_ctr).to(be_eq(0x0010));
+    }
+
+    #[test]
+    fn add_relative_to_pc_with_page_turn() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr_rel = 0x0100;
+        cpu.p_ctr = 0x0000;
+
+        let v = cpu.add_relative_to_pc();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.p_ctr).to(be_eq(0x0100));
+    }
+
+    #[test]
+    fn bcc() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr_rel = 0x0010;
+        cpu.p_ctr = 0x0000;
+        cpu.set_status_flag(StatusFlag::C, false);
+
+        let v = cpu.bcc();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.p_ctr).to(be_eq(0x0010));
+    }
+
+    #[test]
+    fn bcs() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr_rel = 0x0010;
+        cpu.p_ctr = 0x0000;
+        cpu.set_status_flag(StatusFlag::C, true);
+
+        let v = cpu.bcs();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.p_ctr).to(be_eq(0x0010));
+    }
+
+    #[test]
+    fn beq() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr_rel = 0x0010;
+        cpu.p_ctr = 0x0000;
+        cpu.set_status_flag(StatusFlag::Z, true);
+
+        let v = cpu.beq();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.p_ctr).to(be_eq(0x0010));
+    }
+
+    #[test]
+    fn bmi() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr_rel = 0x0010;
+        cpu.p_ctr = 0x0000;
+        cpu.set_status_flag(StatusFlag::N, true);
+
+        let v = cpu.bmi();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.p_ctr).to(be_eq(0x0010));
+    }
+
+    #[test]
+    fn bne() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr_rel = 0x0010;
+        cpu.p_ctr = 0x0000;
+        cpu.set_status_flag(StatusFlag::Z, false);
+
+        let v = cpu.bne();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.p_ctr).to(be_eq(0x0010));
+    }
+
+    #[test]
+    fn bpl() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr_rel = 0x0010;
+        cpu.p_ctr = 0x0000;
+        cpu.set_status_flag(StatusFlag::N, false);
+
+        let v = cpu.bpl();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.p_ctr).to(be_eq(0x0010));
+    }
+
+    #[test]
+    fn bvc() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr_rel = 0x0010;
+        cpu.p_ctr = 0x0000;
+        cpu.set_status_flag(StatusFlag::V, false);
+
+        let v = cpu.bvc();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.p_ctr).to(be_eq(0x0010));
+    }
+
+    #[test]
+    fn bvs() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr_rel = 0x0010;
+        cpu.p_ctr = 0x0000;
+        cpu.set_status_flag(StatusFlag::V, true);
+
+        let v = cpu.bvs();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.p_ctr).to(be_eq(0x0010));
     }
 }
