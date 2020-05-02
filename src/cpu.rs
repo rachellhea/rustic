@@ -310,9 +310,80 @@ impl<'a> CPU<'a> {
 
     // -- Operation Modes -- //
     
-    /// Add M to A with Carry
+    /// Add the contents of a memory address to the accumulator, together with the carry bit.
+    /// If an overflow occurs, we set the carry bit for enabling multi-byte addition.
+    /// 
+    /// A,Z,C,N,V = A + M + C
+    /// 
+    /// Status flags set:
+    /// * C - if overflow in bit 7
+    /// * Z - if A == 0
+    /// * V - if sign bit is incorrect
+    /// * N - if bit 7 of A is set
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#ADC
+    /// 
+    /// Examples:
+    /// 
+    /// A = 11000000
+    /// M = 01100010
+    /// C = 0
+    /// 
+    ///   ------------- This bit takes the carry from the prior bit, which results in
+    ///   |             01 + 01 + 00 == 10; since this is bit 7, this would result in
+    ///   |             the C flag being set to 1.
+    ///   |------------ This bit sums to 10, so carry 1 to the next bit
+    ///   vv
+    ///   11000000
+    /// + 01100010
+    /// ----------
+    ///  100100010
+    ///  ^
+    ///  -------------- Overflow here, so C = 1
+    /// 
+    /// A = 00000000
+    /// M = 00000000
+    /// C = 1
+    /// 
+    ///   00000000
+    ///   00000000
+    /// + 00000001 <- Just to illustrate that C is always treated as bit 0
+    /// ----------
+    ///   00000001
+    /// 
+    /// How do we determine the value of the overflow flag? Consider the following truth
+    /// table of bit 7 from each value in the computation (ignoring C, which is always 0):
+    /// 
+    /// | A | M | R || V || A^R | A^M | !(A^M) |
+    /// |---|---|---||---||:---:|:---:|:------:|
+    /// | 0 | 0 | 0 || 0 ||  0  |  0  |    1   |
+    /// | 0 | 0 | 1 || 1 ||  1  |  0  |    1   |
+    /// | 0 | 1 | 0 || 0 ||  0  |  1  |    0   |
+    /// | 0 | 1 | 1 || 0 ||  1  |  1  |    0   |
+    /// | 1 | 0 | 0 || 0 ||  1  |  1  |    0   |
+    /// | 1 | 0 | 1 || 0 ||  0  |  1  |    0   |
+    /// | 1 | 1 | 0 || 1 ||  1  |  0  |    1   |
+    /// | 1 | 1 | 1 || 0 ||  0  |  0  |    1   |
+    /// 
+    /// Thus, V = (A^R) & !(A^M).
     fn adc(&mut self) -> u8 {
-        0
+        self.fetch();
+
+        let a = self.a as u16;
+        let m = self.m as u16;
+        let c = self.get_status_flag(StatusFlag::C) as u16;
+
+        let r = a + m + c;
+        self.set_status_flag(StatusFlag::C, r > 255); // Exceeds the bounds of 8-bit integers
+        self.set_status_flag(StatusFlag::Z, (r as u8) == 0); // Check only the 8-bit result
+        self.set_status_flag(StatusFlag::N, r & (1 << 7) > 0);
+
+        // See above for explanation on this formula.
+        // Remember that we only care about bit 7 of the result!
+        self.set_status_flag(StatusFlag::V, (a ^ r) & !(a ^ m) & (1 << 7) != 0);
+        self.a = r as u8;
+
+        1
     }
 
     /// Logical AND.
@@ -534,19 +605,67 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Compare M and A
+    /// Compare M and A via subtraction, setting Z and C as appropriate.
+    /// 
+    /// Z,C,N = A - M
+    /// 
+    /// Status flags affected:
+    /// * C - if A >= M
+    /// * Z - if A == M
+    /// * N - if bit 7 of the result is set
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#CMP
     fn cmp(&mut self) -> u8 {
-        0
+        self.fetch();
+
+        let r = self.a - self.m;
+        self.set_status_flag(StatusFlag::C, self.a >= self.m);
+        self.set_status_flag(StatusFlag::Z, self.a == self.m);
+        self.set_status_flag(StatusFlag::N, r & (1 << 7) > 0);
+
+        1
     }
 
-    /// Compare M and X
+    /// Compare M and A via subtraction, setting Z and C as appropriate.
+    /// 
+    /// Z,C,N = A - M
+    /// 
+    /// Status flags affected:
+    /// * C - if A >= M
+    /// * Z - if A == M
+    /// * N - if bit 7 of the result is set
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#CPY
     fn cpx(&mut self) -> u8 {
-        0
+        self.fetch();
+
+        let r = self.x - self.m;
+        self.set_status_flag(StatusFlag::C, self.x >= self.m);
+        self.set_status_flag(StatusFlag::Z, self.x == self.m);
+        self.set_status_flag(StatusFlag::N, r & (1 << 7) > 0);
+
+        1
     }
 
-    /// Compare M and Y
+    /// Compare M and A via subtraction, setting Z and C as appropriate.
+    /// 
+    /// Z,C,N = A - M
+    /// 
+    /// Status flags affected:
+    /// * C - if A >= M
+    /// * Z - if A == M
+    /// * N - if bit 7 of the result is set
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#CPX
     fn cpy(&mut self) -> u8 {
-        0
+        self.fetch();
+
+        let r = self.y - self.m;
+        self.set_status_flag(StatusFlag::C, self.y >= self.m);
+        self.set_status_flag(StatusFlag::Z, self.y == self.m);
+        self.set_status_flag(StatusFlag::N, r & (1 << 7) > 0);
+
+        1
     }
 
     /// Decrement a value from memory.
@@ -972,9 +1091,65 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Subtract M from A with Borrow
+    /// Subtract the contents of a memory address from the accumulator, together with the carry bit.
+    /// If an overflow occurs, we clear the carry bit for enabling multi-byte subtraction.
+    /// 
+    /// A,Z,C,N,V = A - M - (1 - C)
+    /// 
+    /// Status flags set:
+    /// * C - if overflow in bit 7
+    /// * Z - if A == 0
+    /// * V - if sign bit is incorrect
+    /// * N - if bit 7 of A is set
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#SBC
+    /// 
+    /// Logical breakdown:
+    /// 
+    /// A - M - (1 - C) = A + (-1)(M + (1 - C))
+    ///                 = A + (-1)(M) + (-1)(1 - C)
+    ///                 = A + (-M) - 1 + C
+    /// 
+    /// Inverting a positive number in binary form to its negative magnitude is a twos-complement, e.g.:
+    /// 
+    ///  10 (decimal) = 00001010
+    /// -10 (decimal) = 11110101 + 000000001
+    ///               = 11110110 (in unsigned form, 246)
+    /// 
+    /// Easy check for this is that 246 + 10 = 256, which is the full range of integers representable
+    /// with 8 bits. As a further example, if we were to perform an addition in unsigned form and
+    /// modulate the result into 8-bit form, then:
+    ///
+    /// (25 + 246) % 256 = 271 % 256
+    ///                  = 15
+    ///                  = 25 - 10
+    /// 
+    /// Now, note above that the formula already has a (- 1) term, which sums with the (+ 1) term of
+    /// the twos-complement to 0. Thus:
+    /// 
+    /// A - M - (1 - C) = A + !M + 1 - 1 + C
+    ///                 = A + !M + C
+    /// 
+    /// Very easy. :)
     fn sbc(&mut self) -> u8 {
-        0
+        self.fetch();
+
+        // Doing an xor here to make sure we don't flip anything beyond bit-7.
+        let not_m = self.m as u16 ^ 0x00FF;
+        let a = self.a as u16;
+        let c = self.get_status_flag(StatusFlag::C) as u16;
+        
+        let r = a + not_m + c;
+        self.set_status_flag(StatusFlag::C, r > 255);
+        self.set_status_flag(StatusFlag::Z, r == 0);
+        self.set_status_flag(StatusFlag::N, r & (1 << 7) > 0);
+
+        // See the documentation for the ADC instruction for an explanation
+        // of this logic. Note that we se !M instead of M in the formula.
+        self.set_status_flag(StatusFlag::V, (a ^ r) & !(a ^ not_m) & (1 << 7) != 0);
+        self.a = r as u8;
+
+        1
     }
 
     /// Set Carry flag.
@@ -2350,5 +2525,83 @@ mod tests {
         expect!(v).to(be_eq(0));
         expect!(cpu.p_ctr).to(be_eq(0xDDFE));
         expect!(cpu.stat).to(be_eq(0b10001010)); // B and U not set
+    }
+
+    #[test]
+    fn cmp() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.a = 0xFF;
+        cpu.write(0x0000, 0xFF);
+
+        let v = cpu.cmp();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+        fn cpx() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.x = 0xFF;
+        cpu.write(0x0000, 0xFF);
+
+        let v = cpu.cpx();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn cpy() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.y = 0xFF;
+        cpu.write(0x0000, 0xFF);
+
+        let v = cpu.cpy();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn adc() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr_mode = Some(AddressingMode::IMP);
+        cpu.a = 0b11000000; // 192
+        cpu.m = 0b01100010; // 98
+        cpu.set_status_flag(StatusFlag::C, true);
+
+        let v = cpu.adc();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.a).to(be_eq(0b00100011));
+        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::V)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn sbc() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr_mode = Some(AddressingMode::IMP);
+        cpu.a = 0b11000000; // 192
+        cpu.m = 0b01100010; // 98
+        cpu.set_status_flag(StatusFlag::C, true);
+
+        let v = cpu.sbc();
+        expect!(v).to(be_eq(1));
+        expect!(cpu.a).to(be_eq(0b01011110));
+        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::V)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
     }
 }
