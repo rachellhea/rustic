@@ -592,13 +592,36 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Jump to Location
+    /// Set the program counter to the loaded address.
+    /// 
+    /// No status flags set.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#JMP
     fn jmp(&mut self) -> u8 {
+        self.p_ctr = self.addr;
+
         0
     }
 
-    /// Jump to Location Save Return Address
+    /// Set the program counter to the loaded address, and save
+    /// the old program counter on the stack.
+    /// 
+    /// No status flags set.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#JSR
     fn jsr(&mut self) -> u8 {
+        // The addressing mode for any instruction which uses this
+        // operating mode should increment the program counter in
+        // some form. Thus, we need to decrement it to ensure that
+        // we store the correct value.
+        self.p_ctr -= 1;
+
+        // Push the bytes of PC onto the stack in high -> low order.
+        // Reading back from the stack will be low -> high order.
+        self.push_to_stack((self.p_ctr >> 8) as u8);
+        self.push_to_stack(self.p_ctr as u8);
+        self.p_ctr = self.addr;
+
         0
     }
 
@@ -822,8 +845,19 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Return from Subroutine
+    /// Pull the program counter from the value saved on the stack.
+    /// 
+    /// No status flags set.
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#RTS
     fn rts(&mut self) -> u8 {
+        let lo = self.pull_from_stack() as u16;
+        let hi = self.pull_from_stack() as u16;
+
+        // Add 1 back to the program counter, since it was decremented
+        // during JSR.
+        self.p_ctr = ((hi << 8) | lo) + 1;
+
         0
     }
 
@@ -1968,5 +2002,50 @@ mod tests {
         expect!(cpu.get_status_flag(StatusFlag::C)).to(be_false());
         expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
         expect!(cpu.get_status_flag(StatusFlag::N)).to(be_true());
+    }
+
+    #[test]
+    fn jmp() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.p_ctr = 0xFFFF;
+        cpu.addr = 0x9999;
+
+        let v = cpu.jmp();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.p_ctr).to(be_eq(cpu.addr));
+        expect!(cpu.p_ctr).to(be_eq(0x9999));
+    }
+
+    #[test]
+    fn jsr() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.p_ctr = 0xFFDE;
+        cpu.addr = 0x9999;
+        cpu.stk_ptr = 0xFD;
+
+        let v = cpu.jsr();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.p_ctr).to(be_eq(cpu.addr));
+        expect!(cpu.p_ctr).to(be_eq(0x9999));
+        expect!(cpu.stk_ptr).to(be_eq(0xFB));
+        expect!(cpu.read(0x01FD)).to(be_eq(0xFF));
+        expect!(cpu.read(0x01FC)).to(be_eq(0xDD));
+    }
+
+    #[test]
+    fn rts() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.p_ctr = 0x9999;
+        cpu.stk_ptr = 0xFD;
+        cpu.push_to_stack(0xFF);
+        cpu.push_to_stack(0xDD);
+
+        let v = cpu.rts();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.p_ctr).to(be_eq(0xFFDE));
+        expect!(cpu.stk_ptr).to(be_eq(0xFD));
     }
 }
