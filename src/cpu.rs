@@ -74,7 +74,8 @@ impl<'a> CPU<'a> {
             // Execute the instruction. If at least one additional cycle is needed,
             // then increment the cycles counter.
             let addrmode_cycles = get_addressing_mode(&instruction.addr_mode)(self);
-            self.cycles += addrmode_cycles;
+            let opmode_cycles = get_operating_mode(&instruction.op_mode)(self);
+            self.cycles += addrmode_cycles & opmode_cycles;
         }
 
         self.cycles -= 1;
