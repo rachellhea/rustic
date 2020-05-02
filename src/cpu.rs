@@ -446,8 +446,30 @@ impl<'a> CPU<'a> {
         self.branch_on_flag(StatusFlag::N, false)
     }
 
-    /// Force Break
+    /// Forces the generation of an Interrupt request. PC and S are pushed onto the
+    /// stack, PC is set to the IRQ interrupt vector at $FFFE..F, and the break flag
+    /// in S is set to 1.
+    /// 
+    /// Note that the B flag *technically* does not exist in the status register. It
+    /// only exists in the status flag byte pushed to the stack, and that value should
+    /// be discarded when it is recovered from the stack.
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#BRK
+    /// Further reading: http://nesdev.com/the%20%27B%27%20flag%20&%20BRK%20instruction.txt
     fn brk(&mut self) -> u8 {
+        self.p_ctr += 1;
+        self.push_to_stack((self.p_ctr >> 8) as u8);
+        self.push_to_stack(self.p_ctr as u8);
+
+        // Set the status flag byte before pushing to the stack, then reset to false.
+        self.set_status_flag(StatusFlag::B, true);
+        self.push_to_stack(self.stat);
+        self.set_status_flag(StatusFlag::B, false);
+
+        let lo = self.read(0xFFFE) as u16;
+        let hi = self.read(0xFFFF) as u16;
+        self.p_ctr = (hi << 8) | lo;
+
         0
     }
 
@@ -775,7 +797,13 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// No Operation
+    /// No-op.
+    /// 
+    /// Note that not all no-ops in the NES world are true no-ops:
+    /// https://wiki.nesdev.com/w/index.php/CPU_unofficial_opcodes
+    /// ^ TODO: Implement the above ^
+    /// 
+    /// References: http://www.obelisk.me.uk/6502/reference.html#NOP
     fn nop(&mut self) -> u8 {
         0
     }
@@ -811,14 +839,19 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Push a copy of the accumulator onto the stack.
+    /// Push a copy of the status code onto the stack.
+    /// 
+    /// Note that the B flag is always set in the status code which is pushed.
+    /// http://nesdev.com/the%20%27B%27%20flag%20&%20BRK%20instruction.txt
     /// 
     /// No status flags set.
     /// 
     /// Reference: http://obelisk.me.uk/6502/reference.html#PHA
     /// 6502 Stack reference: https://wiki.nesdev.com/w/index.php/Stack
     fn php(&mut self) -> u8 {
+        self.set_status_flag(StatusFlag::B, true);
         self.push_to_stack(self.stat);
+        self.set_status_flag(StatusFlag::B, false);
 
         0
     }
@@ -841,6 +874,10 @@ impl<'a> CPU<'a> {
 
     /// Pull from the stack and assign that value to the status code.
     /// 
+    /// Note that the B flag is always set in the status code which is pushed.
+    /// Thus, we need to set it back to false after we retrieve it.
+    /// http://nesdev.com/the%20%27B%27%20flag%20&%20BRK%20instruction.txt
+    /// 
     /// No status flags directly set; they are set to the values from
     /// the stack.
     /// 
@@ -848,6 +885,7 @@ impl<'a> CPU<'a> {
     /// 6502 Stack reference: https://wiki.nesdev.com/w/index.php/Stack
     fn plp(&mut self) -> u8 {
         self.stat = self.pull_from_stack();
+        self.set_status_flag(StatusFlag::B, false);
 
         0
     }
@@ -901,9 +939,20 @@ impl<'a> CPU<'a> {
 
         0
     }
-
-    /// Return from Interrupt
+    
+    /// Return from an interrupt routine. Pull the processor flags from the stack,
+    /// then the program counter.
+    /// 
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#RTI
     fn rti(&mut self) -> u8 {
+        self.stat = self.pull_from_stack();
+        self.set_status_flag(StatusFlag::B, false);
+        self.set_status_flag(StatusFlag::U, false); // Just in case.
+
+        let lo = self.pull_from_stack() as u16;
+        let hi = self.pull_from_stack() as u16;
+        self.p_ctr = (hi << 8) | lo;
+
         0
     }
 
@@ -939,7 +988,7 @@ impl<'a> CPU<'a> {
 
     /// Set Decimal flag.
     /// 
-    /// Reference: http://www.obelisk.me.uk/6502/reference.html#SEC
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#SED
     fn sed(&mut self) -> u8 {
         self.set_status_flag(StatusFlag::D, true);
 
@@ -948,7 +997,7 @@ impl<'a> CPU<'a> {
 
     /// Set Interrupt disable flag.
     /// 
-    /// Reference: http://www.obelisk.me.uk/6502/reference.html#SEC
+    /// Reference: http://www.obelisk.me.uk/6502/reference.html#SEI
     fn sei(&mut self) -> u8 {
         self.set_status_flag(StatusFlag::I, true);
 
@@ -1848,12 +1897,12 @@ mod tests {
         let mut bus = Bus::new();
         let mut cpu = CPU::new(&mut bus);
         cpu.reset(); // stack pointer is set to 0xFD here
-        cpu.stat = 0xFF;
+        cpu.stat = 0b11101111;
 
         let v = cpu.php();
         expect!(v).to(be_eq(0));
         expect!(cpu.stk_ptr).to(be_eq(0xFC));
-        expect!(cpu.read(0x01FD)).to(be_eq(cpu.stat));
+        expect!(cpu.read(0x01FD)).to(be_eq(cpu.stat + (1 << 4))); // B is always set
     }
 
     #[test]
@@ -1876,12 +1925,12 @@ mod tests {
         let mut bus = Bus::new();
         let mut cpu = CPU::new(&mut bus);
         cpu.reset(); // stack pointer is set to 0xFD here
-        cpu.push_to_stack(0xFF); // stack: 0xFD => 0xFF, stack pointer is now 0xFC
+        cpu.push_to_stack(0b11111111); // stack: 0xFD => 0xFF, stack pointer is now 0xFC
 
         let v = cpu.plp();
         expect!(v).to(be_eq(0));
         expect!(cpu.stk_ptr).to(be_eq(0xFD)); // came back to 0xFD after pull
-        expect!(cpu.read(0x01FD)).to(be_eq(cpu.stat));
+        expect!(cpu.read(0x01FD)).to(be_eq(cpu.stat + (1 << 4)));
     }
 
     #[test]
@@ -2269,5 +2318,37 @@ mod tests {
         let v = cpu.bvs();
         expect!(v).to(be_eq(1));
         expect!(cpu.p_ctr).to(be_eq(0x0010));
+    }
+
+    #[test]
+    fn brk() {
+        let mut bus = Bus::new();
+        bus.write(0xFFFE, 0x0D);
+        bus.write(0xFFFF, 0xD0);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.p_ctr = 0xDDFE;
+        cpu.stat = 0b10101010; // B is not set, but will be in stack
+
+        let v = cpu.brk();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.p_ctr).to(be_eq(0xD00D));
+        expect!(cpu.pull_from_stack()).to(be_eq(0b10111010));
+        expect!(cpu.pull_from_stack()).to(be_eq(0xFF));
+        expect!(cpu.pull_from_stack()).to(be_eq(0xDD));
+    }
+
+    #[test]
+    fn rti() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.push_to_stack(0xDD);
+        cpu.push_to_stack(0xFE);
+        cpu.push_to_stack(0b10111010); // B is set in stack
+
+        let v = cpu.rti();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.p_ctr).to(be_eq(0xDDFE));
+        expect!(cpu.stat).to(be_eq(0b10001010)); // B and U not set
     }
 }
