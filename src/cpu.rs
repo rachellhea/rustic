@@ -139,8 +139,7 @@ impl<'a> CPU<'a> {
     pub fn fetch(&mut self) -> u8 {
         // Check the current address mode; if it is not set to IMP, read a value and cache it
         // for later operation by an instruction.
-        // Treat lack of a value as IMP.
-        if self.addr_mode.unwrap_or(AddressingMode::IMP) != AddressingMode::IMP {
+        if self.addr_mode.unwrap_or(AddressingMode::ABS) != AddressingMode::IMP {
             self.m = self.read(self.addr);
         }
 
@@ -334,8 +333,34 @@ impl<'a> CPU<'a> {
         1
     }
 
-    /// Shift Left One Bit (M or A)
+    /// Arithmetic bit shift left. Shifts the contents of either A or M one bit
+    /// to the left (i.e., multiplies by 2). Bit 0 is always set to 0. The result
+    /// is either stored back to A (if we are using IMP addressing mode) or
+    /// written to memory (otherwise).
+    /// 
+    /// IMP: A,Z,C,N = M << 1
+    /// else: M,Z,C,N = M << 1
+    /// 
+    /// Status flags set:
+    /// * C - the contents of bit 7 before the shift
+    /// * Z - if the shift result == 0
+    /// * N - if bit 7 of the shift result is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#ASL
     fn asl(&mut self) -> u8 {
+        self.fetch();
+
+        let shift = self.m << 1;
+        self.set_status_flag(StatusFlag::C, self.m & (1 << 7) > 0);
+        self.set_status_flag(StatusFlag::Z, shift as u8 == 0);
+        self.set_status_flag(StatusFlag::N, shift & (1 << 7) > 0);
+
+        if self.addr_mode.unwrap_or(AddressingMode::IMP) == AddressingMode::IMP {
+            self.a = shift;
+        } else {
+            self.write(self.addr, shift);
+        }
+
         0
     }
 
@@ -634,8 +659,34 @@ impl<'a> CPU<'a> {
         1
     }
 
-    /// Shift Right One Bit (M or A)
+    /// Logical bit shift right. Shifts the contents of either A or M one bit
+    /// to the right (i.e., divides by 2). Bit 7 is always set to 0. The result
+    /// is either stored back to A (if we are using IMP addressing mode) or
+    /// written to memory (otherwise).
+    /// 
+    /// IMP: A,Z,C,N = M >> 1
+    /// else: M,Z,C,N = M >> 1
+    /// 
+    /// Status flags set:
+    /// * C - the contents of bit 0 before the shift
+    /// * Z - if the shift result == 0
+    /// * N - if bit 7 of the shift result is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#LSR
     fn lsr(&mut self) -> u8 {
+        self.fetch();
+
+        let shift = self.m >> 1;
+        self.set_status_flag(StatusFlag::C, self.m & 1 > 0);
+        self.set_status_flag(StatusFlag::Z, shift as u8 == 0);
+        self.set_status_flag(StatusFlag::N, shift & (1 << 7) > 0);
+
+        if self.addr_mode.unwrap_or(AddressingMode::IMP) == AddressingMode::IMP {
+            self.a = shift;
+        } else {
+            self.write(self.addr, shift);
+        }
+
         0
     }
 
@@ -716,13 +767,53 @@ impl<'a> CPU<'a> {
         0
     }
 
-    /// Rotate One Bit Left (M or A)
+    /// Rotate one bit to the left. Bit 0 is filled with the current value
+    /// of the carry flag, and the carry flag is updated with the old bit 7.
+    /// 
+    /// Status flags set:
+    /// * C - the contents of bit 7 before the rotation
+    /// * Z - if the rotation result == 0
+    /// * N - if bit 7 of the rotation result is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#ROL
     fn rol(&mut self) -> u8 {
+        self.fetch();
+
+        let shift = self.m << 1 | self.get_status_flag(StatusFlag::C) as u8;
+        self.set_status_flag(StatusFlag::C, self.m & (1 << 7) > 0);
+        self.set_status_flag(StatusFlag::Z, shift == 0);
+        self.set_status_flag(StatusFlag::N, shift & (1 << 7) > 0);
+        if self.addr_mode.unwrap_or(AddressingMode::IMP) == AddressingMode::IMP {
+            self.a = shift;
+        } else {
+            self.write(self.addr, shift);
+        }
+
         0
     }
 
-    /// Rotate One Bit Right (M or A)
+    /// Rotate one bit to the right. Bit 7 is filled with the current value
+    /// of the carry flag, and the carry flag is updated with the old bit 0.
+    /// 
+    /// Status flags set:
+    /// * C - the contents of bit 0 before the rotation
+    /// * Z - if the rotation result == 0
+    /// * N - if bit 7 of the rotation result is set
+    /// 
+    /// Reference: http://obelisk.me.uk/6502/reference.html#ROR
     fn ror(&mut self) -> u8 {
+        self.fetch();
+
+        let shift = self.m >> 1 | ((self.get_status_flag(StatusFlag::C) as u8) << 7);
+        self.set_status_flag(StatusFlag::C, self.m & 1 > 0);
+        self.set_status_flag(StatusFlag::Z, shift == 0);
+        self.set_status_flag(StatusFlag::N, shift & (1 << 7) > 0);
+        if self.addr_mode.unwrap_or(AddressingMode::IMP) == AddressingMode::IMP {
+            self.a = shift;
+        } else {
+            self.write(self.addr, shift);
+        }
+
         0
     }
 
@@ -1442,7 +1533,7 @@ mod tests {
         let mut bus = Bus::new();
         let mut cpu = CPU::new(&mut bus);
         cpu.m = 0xFF;
-        cpu.opcode = 0x0A; // ASL with IMP addressing
+        cpu.addr_mode = Some(AddressingMode::IMP);
         
         let fetched = cpu.fetch();
         expect!(fetched).to(be_eq(cpu.m));
@@ -1745,5 +1836,137 @@ mod tests {
         expect!(cpu.y).to(be_eq(0x7F));
         expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
         expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn asl() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0b10101010);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr_mode = Some(AddressingMode::ABS);
+
+        let v = cpu.asl();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.read(0x0000)).to(be_eq(0b01010100));
+        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn asl_imp() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.a = 0b10101010;
+        cpu.m = 0b10101010;
+        cpu.addr_mode = Some(AddressingMode::IMP);
+
+        let v = cpu.asl();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.a).to(be_eq(0b01010100));
+        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn lsr() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0b10101010);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.addr_mode = Some(AddressingMode::ABS);
+
+        let v = cpu.lsr();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.read(0x0000)).to(be_eq(0b01010101));
+        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn lsr_imp() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.a = 0b10101010;
+        cpu.m = 0b10101010;
+        cpu.addr_mode = Some(AddressingMode::IMP);
+
+        let v = cpu.lsr();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.a).to(be_eq(0b01010101));
+        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn rol() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0b10101010);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.set_status_flag(StatusFlag::C, true);
+        cpu.addr_mode = Some(AddressingMode::ABS);
+
+        let v = cpu.rol();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.read(0x0000)).to(be_eq(0b01010101));
+        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn rol_imp() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.a = 0b10101010;
+        cpu.m = 0b10101010;
+        cpu.set_status_flag(StatusFlag::C, true);
+        cpu.addr_mode = Some(AddressingMode::IMP);
+
+        let v = cpu.rol();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.a).to(be_eq(0b01010101));
+        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+    }
+
+    #[test]
+    fn ror() {
+        let mut bus = Bus::new();
+        bus.write(0x0000, 0b10101010);
+
+        let mut cpu = CPU::new(&mut bus);
+        cpu.set_status_flag(StatusFlag::C, true);
+        cpu.addr_mode = Some(AddressingMode::ABS);
+
+        let v = cpu.ror();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.read(0x0000)).to(be_eq(0b11010101));
+        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_true());
+    }
+
+    #[test]
+    fn ror_imp() {
+        let mut bus = Bus::new();
+        let mut cpu = CPU::new(&mut bus);
+        cpu.a = 0b10101010;
+        cpu.m = 0b10101010;
+        cpu.set_status_flag(StatusFlag::C, true);
+        cpu.addr_mode = Some(AddressingMode::IMP);
+
+        let v = cpu.ror();
+        expect!(v).to(be_eq(0));
+        expect!(cpu.a).to(be_eq(0b11010101));
+        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
+        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_true());
     }
 }

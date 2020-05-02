@@ -26,7 +26,7 @@ pub struct Instruction<'a> {
 /// The status code bitmask is updated after every instruction, and thus the bitmask can be used
 /// to inform future instructions about prior results, or to control various aspects of functionality,
 /// e.g., if the I flag is set (disable interrupts), then IRQ signals can be ignored (but NMI cannot).
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum StatusFlag {
     C = 1,      // Carry Bit
     Z = 1 << 1, // Zero
@@ -40,7 +40,7 @@ pub enum StatusFlag {
 
 /// The defined and supported addressing modes. Each of these determines how an instruction retrieves
 /// the data to be used for its operation.
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum AddressingMode {
     ABS,
     ABX,
@@ -58,7 +58,7 @@ pub enum AddressingMode {
 
 /// The defined and supported operating modes. Each of these determines how an instruction operates
 /// on its given data.
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum OperatingMode {
     ADC,
     AND,
