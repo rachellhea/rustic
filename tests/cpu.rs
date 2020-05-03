@@ -31,47 +31,55 @@ fn clock_cycle_next() {
 #[test]
 fn interrupt_ignored() {
     let mut bus = Bus::new();
-    // To verify that we did not execute the interrupt, we just set two values in the bus
-    // and make sure that we get the one from 0x0000 (the starting address).
+    bus.write(0x0000, 0x78); // Run SEI first to set the Interrupt flag
+
+    // To verify that we execute the interrupt, we just set two values in the bus
+    // and make sure that the program counter is NOT set to the 2-byte address
+    // specified by memory addresses 0xFFFE..0xFFFF.
     bus.write(0xFFFE, 0x55);
-    bus.write(0x0000, 0x33);
+    bus.write(0xFFFF, 0xCC);
 
     let mut cpu = CPU::new(&mut bus);
-    cpu.set_interrupt_flag(true);
+    cpu.clock();
     cpu.interrupt();
 
-    expect!(cpu.fetch()).to_not(be_eq(0x55)); // Make sure we did nothing
+    expect!(cpu.p_ctr).to_not(be_eq(0xCC55)); // Make sure we did nothing
 }
 
 #[test]
 fn interrupt_followed() {
     let mut bus = Bus::new();
+    bus.write(0x0000, 0x58); // Run CLI first to clear the Interrupt flag.
 
     // To verify that we execute the interrupt, we just set two values in the bus
-    // and make sure that we get the one from 0xFFFE (the interrupt address).
+    // and make sure that the program counter is set to the 2-byte address specified
+    // by memory addresses 0xFFFE..0xFFFF.
     bus.write(0xFFFE, 0x55);
-    bus.write(0x0000, 0x33);
+    bus.write(0xFFFF, 0xCC);
 
     let mut cpu = CPU::new(&mut bus);
-    cpu.set_interrupt_flag(false);
+    cpu.clock();
     cpu.interrupt();
 
-    expect!(cpu.fetch()).to(be_eq(0x55));
+    expect!(cpu.p_ctr).to(be_eq(0xCC55));
 }
 
 #[test]
 fn interrupt_no_mask_cannot_ignore() {
     let mut bus = Bus::new();
+    bus.write(0x0000, 0x78); // Run SEI first to set the Interrupt flag
+
     // To verify that we execute the interrupt, we just set two values in the bus
-    // and make sure that we get the one from 0xFFFA (the no-mask interrupt address).
+    // and make sure that the program counter is set to the 2-byte address specified
+    // by memory addresses 0xFFFA..0xFFFB.
     bus.write(0xFFFA, 0x55);
-    bus.write(0x0000, 0x33);
+    bus.write(0xFFFB, 0xCC);
 
     let mut cpu = CPU::new(&mut bus);
-    cpu.set_interrupt_flag(true);
+    cpu.clock();
     cpu.interrupt_no_mask();
 
-    expect!(cpu.fetch()).to(be_eq(0x55));
+    expect!(cpu.p_ctr).to(be_eq(0xCC55));
 }
 
 #[test]

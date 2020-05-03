@@ -67,6 +67,8 @@ impl<'a> CPU<'a> {
             self.p_ctr += 1;
 
             let instruction = &INSTRUCTIONS[self.opcode as usize];
+            println!("Clock cycle found {:?}", instruction);
+
             self.cycles = instruction.cycles;
             self.addr_mode = Some(instruction.addr_mode);
             self.op_mode = Some(instruction.op_mode);
@@ -81,19 +83,10 @@ impl<'a> CPU<'a> {
         self.cycles -= 1;
     }
 
-    /// Retrieve the boolean value of a particular flag in the status code.
-    pub fn get_status_flag(&self, status_flag: StatusFlag) -> bool {
-        (self.stat & (status_flag as u8)) != 0
-    }
-    
-    /// Convenience function for flipping on the interrupt flag, as it is impossible to do
-    /// so through other public library functions.
-    pub fn set_interrupt_flag(&mut self, v: bool) {
-        self.set_status_flag(StatusFlag::I, v);
-    }
-
     /// Request an interrupt. This can be ignored if the I flag on the status code is set.
     pub fn interrupt(&mut self) {
+        println!("Interrupt set? {}", self.get_status_flag(StatusFlag::I));
+
         if self.get_status_flag(StatusFlag::I) {
             return;
         }
@@ -1365,22 +1358,25 @@ impl<'a> CPU<'a> {
     /// IRQ and NMI (interrupt and interrupt_no_mask, respectively), which only differ in
     /// the address they use to set the program counter.
     fn interrupt_and_set_address_to(&mut self, addr: u16) {
-        self.write(0x0100 + self.stk_ptr as u16, (self.p_ctr >> 8) as u8);
-        self.stk_ptr -= 1;
-        self.write(0x0100 + self.stk_ptr as u16, self.p_ctr as u8);
-        self.stk_ptr -= 1;
+        self.push_to_stack((self.p_ctr >> 8) as u8);
+        self.push_to_stack(self.p_ctr as u8);
 
         self.set_status_flag(StatusFlag::B, false);
         self.set_status_flag(StatusFlag::U, true);
         self.set_status_flag(StatusFlag::I, true);
-        self.write(0x0100 + self.stk_ptr as u16, self.stat);
-        self.stk_ptr -= 1;
+        self.push_to_stack(self.stat);
+        
         self.addr = addr;
 
         let lo: u16 = self.read(self.addr) as u16;
-        let hi: u16 = self.read(self.addr) as u16;
+        let hi: u16 = self.read(self.addr + 1) as u16;
         self.p_ctr = (hi << 8) | lo;
         self.cycles = 7;
+    }
+
+    /// Retrieve the boolean value of a particular flag in the status code.
+    fn get_status_flag(&self, status_flag: StatusFlag) -> bool {
+        (self.stat & (status_flag as u8)) != 0
     }
     
     /// Set the boolean value of a particular flag in the status code.
