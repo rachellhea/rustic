@@ -1,5 +1,3 @@
-use lazy_static::lazy_static;
-
 /// A basic structure of data defining an instruction supported by the CPU. Each instruction is
 /// submitted to the CPU via a single byte which determines the functionality of the instruction
 /// in how it loads its data from memory (if any) and how it operates on that data.
