@@ -7,7 +7,10 @@ use nom::{
     },
     bytes::complete::tag,
     combinator::map_opt,
-    number::complete::be_u8,
+    number::complete::{
+        be_u32,
+        be_u8,
+    },
     sequence::pair,
 };
 
@@ -67,14 +70,18 @@ fn parse_flag_bits<T>(input: &[u8], from_bits_fn: fn(u8) -> Option<T>) -> IResul
 }
 
 fn parse_header(input: &[u8]) -> IResult<&[u8], NESHeader> {
-    let (input, _) = tag(b"NES\x1A")(input)?;
-    let (input, prg_page_count) = be_u8(input)?;
-    let (input, chr_page_count) = be_u8(input)?;
-    let (input, (_mapper_lo, flags6)) = parse_flag_bits(input, Flags6::from_bits)?;
-    let (input, (_mapper_hi, flags7)) = parse_flag_bits(input, Flags7::from_bits)?;
-    let (input, prg_ram_size) = be_u8(input)?;
+    let (i, _) = tag(b"NES\x1A")(input)?;
+    let (i, prg_page_count) = be_u8(i)?;
+    let (i, chr_page_count) = be_u8(i)?;
+    let (i, (_mapper_lo, flags6)) = parse_flag_bits(i, Flags6::from_bits)?;
+    let (i, (_mapper_hi, flags7)) = parse_flag_bits(i, Flags7::from_bits)?;
+    let (i, prg_ram_size) = be_u8(i)?;
+    let (i, _) = be_u8(i)?; // skip byte 9; not in the official specification (TODO)
+    let (i, _) = be_u8(i)?; // skip byte 10; not in the official specification (TODO)
+    let (i, _) = be_u8(i)?; // skip byte 11; unused padding
+    let (i, _) = be_u32(i)?; // skip bytes 12-15; unused padding
 
-    Ok((input, NESHeader {
+    Ok((i, NESHeader {
         prg_rom_size: prg_page_count as usize,
         chr_rom_size: chr_page_count as usize,
         nametable_mirror_mode: flags6.into(),
@@ -105,13 +112,13 @@ mod tests {
             0x31, // Flags6 -> first 4 bits are low nybble of mapper, last 4 map to mirroring mode
             0x00, // Flags7 -> first 4 bits are high nybble of mapper, last 4 map to system type
             0x00, // Flags8 -> 8-bit integer specifying the number of pages in PRG RAM
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
+            0x00, // Flags9 -> lowest bit specifies the TV system (NTSC or PAL)
+            0x00, // Flags10 -> bits 1+2 specify TV system (again), bit 4 specifies if PRG RAM present
+            0x00, // unused padding
+            0x00, // unused padding
+            0x00, // unused padding
+            0x00, // unused padding
+            0x00, // unused padding
         ];
 
         let rom = match parse_header(&data[0..16]) {
