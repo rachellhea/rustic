@@ -21,20 +21,23 @@ pub struct Instruction<'a> {
     pub addr_mode: AddressingMode,
 }
 
-/// The set of flags which are used to compose the status code bitmask on the CPU.
-/// The status code bitmask is updated after every instruction, and thus the bitmask can be used
-/// to inform future instructions about prior results, or to control various aspects of functionality,
-/// e.g., if the I flag is set (disable interrupts), then IRQ signals can be ignored (but NMI cannot).
-#[derive(PartialEq, Copy, Clone, Debug)]
-pub enum StatusFlag {
-    C = 1,      // Carry Bit
-    Z = 1 << 1, // Zero
-    I = 1 << 2, // Disable Interrupts
-    D = 1 << 3, // Decimal Mode (unused)
-    B = 1 << 4, // Break
-    U = 1 << 5, // Unused
-    V = 1 << 6, // Overflow
-    N = 1 << 7, // Negative
+bitflags! {
+    /// The set of flags which are used to compose the status code bitmask on the CPU.
+    /// The status code bitmask is updated after every instruction, and thus the bitmask can be used
+    /// to inform future instructions about prior results, or to control various aspects of functionality,
+    /// e.g., if the I flag is set (disable interrupts), then IRQ signals can be ignored (but NMI cannot).
+    #[derive(Default)]
+    pub struct CPUStatus: u8 {
+        const X = 0 as u8;        // Empty
+        const C = 1 as u8;        // Carry
+        const Z = (1 << 1) as u8; // Zero
+        const I = (1 << 2) as u8; // Disable Interrupts
+        const D = (1 << 3) as u8; // Decimal Mode (unused)
+        const B = (1 << 4) as u8; // Break
+        const U = (1 << 5) as u8; // Unused
+        const V = (1 << 6) as u8; // Overflow
+        const N = (1 << 7) as u8; // Negative
+    }
 }
 
 /// The defined and supported addressing modes. Each of these determines how an instruction retrieves

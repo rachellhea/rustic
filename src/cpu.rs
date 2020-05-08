@@ -1,15 +1,11 @@
 use crate::bus::Bus;
-use crate::model::{AddressingMode, OperatingMode, INSTRUCTIONS, StatusFlag};
+use crate::model::*;
 
 /// Core data structure for emulating a 6502 CPU.
 pub struct CPU<'a> {
     /// A hook to the bus, which serves as our interface through which we can read from and write to
     /// memory. This includes retrieving opcodes and data for instruction processing.
     bus: Box<&'a mut Bus>,
-    /// The status code. This is a bitmask composed of a number of flags, each of which serves to
-    /// surface some meaning about the state of the CPU and its last executed instruction.
-    /// See: model::StatusFlag
-    pub stat: u8,
     // The accumulator register.
     pub a: u8,
     // The X register.
@@ -20,6 +16,10 @@ pub struct CPU<'a> {
     pub stk_ptr: u8,
     // The program counter.
     pub p_ctr: u16,
+    /// The status code. This is a bitmask composed of a number of flags, each of which serves to
+    /// surface some meaning about the state of the CPU and its last executed instruction.
+    /// See: model::CPUStatus
+    status: CPUStatus,
     // A reference bank for data fetched from memory.
     m: u8,
     // The address (absolute) from which we'll fetch data from memory.
@@ -43,12 +43,12 @@ impl<'a> CPU<'a> {
     pub fn new(bus: &'a mut Bus) -> CPU<'a> {
         CPU {
             bus:       Box::new(bus),
-            stat:      0x00,
             a:         0x00,
             x:         0x00,
             y:         0x00,
             stk_ptr:   0xFD,
             p_ctr:     0x0000,
+            status:    CPUStatus::default(),
             m:         0x00,
             addr:      0x0000,
             addr_rel:  0x00,
@@ -85,9 +85,7 @@ impl<'a> CPU<'a> {
 
     /// Request an interrupt. This can be ignored if the I flag on the status code is set.
     pub fn interrupt(&mut self) {
-        println!("Interrupt set? {}", self.get_status_flag(StatusFlag::I));
-
-        if self.get_status_flag(StatusFlag::I) {
+        if self.status.contains(CPUStatus::I) {
             return;
         }
 
@@ -114,7 +112,7 @@ impl<'a> CPU<'a> {
         self.x = 0x00;
         self.y = 0x00;
         self.stk_ptr = 0xFD;
-        self.stat = StatusFlag::U as u8; // 00100000
+        self.status = CPUStatus::U; // 00100000
         self.addr = 0xFFFC;
 
         let lo: u16 = self.read(self.addr) as u16;
@@ -364,16 +362,16 @@ impl<'a> CPU<'a> {
 
         let a = self.a as u16;
         let m = self.m as u16;
-        let c = self.get_status_flag(StatusFlag::C) as u16;
+        let c = self.status.contains(CPUStatus::C) as u16;
 
         let r = a + m + c;
-        self.set_status_flag(StatusFlag::C, r > 255); // Exceeds the bounds of 8-bit integers
-        self.set_status_flag(StatusFlag::Z, (r as u8) == 0); // Check only the 8-bit result
-        self.set_status_flag(StatusFlag::N, r & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::C, r > 255); // Exceeds the bounds of 8-bit integers
+        self.set_status_flag(CPUStatus::Z, (r as u8) == 0); // Check only the 8-bit result
+        self.set_status_flag(CPUStatus::N, r & (1 << 7) > 0);
 
         // See above for explanation on this formula.
         // Remember that we only care about bit 7 of the result!
-        self.set_status_flag(StatusFlag::V, (a ^ r) & !(a ^ m) & (1 << 7) != 0);
+        self.set_status_flag(CPUStatus::V, (a ^ r) & !(a ^ m) & (1 << 7) != 0);
         self.a = r as u8;
 
         1
@@ -392,8 +390,8 @@ impl<'a> CPU<'a> {
         self.fetch();
 
         self.a &= self.m;
-        self.set_status_flag(StatusFlag::Z, self.a == 0);
-        self.set_status_flag(StatusFlag::N, self.a & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.a == 0);
+        self.set_status_flag(CPUStatus::N, self.a & (1 << 7) > 0);
 
         1
     }
@@ -416,9 +414,9 @@ impl<'a> CPU<'a> {
         self.fetch();
 
         let shift = self.m << 1;
-        self.set_status_flag(StatusFlag::C, self.m & (1 << 7) > 0);
-        self.set_status_flag(StatusFlag::Z, shift as u8 == 0);
-        self.set_status_flag(StatusFlag::N, shift & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::C, self.m & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, shift as u8 == 0);
+        self.set_status_flag(CPUStatus::N, shift & (1 << 7) > 0);
 
         if self.addr_mode.unwrap_or(AddressingMode::IMP) == AddressingMode::IMP {
             self.a = shift;
@@ -436,7 +434,7 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://obelisk.me.uk/6502/reference.html#BCC
     fn bcc(&mut self) -> u8 {
-        self.branch_on_flag(StatusFlag::C, false)
+        self.branch_on_flag(CPUStatus::C, false)
     }
 
     /// Branch if Carry set. If the carry flag is set, then add the relative
@@ -446,7 +444,7 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://obelisk.me.uk/6502/reference.html#BCS
     fn bcs(&mut self) -> u8 {
-        self.branch_on_flag(StatusFlag::C, true)
+        self.branch_on_flag(CPUStatus::C, true)
     }
 
     /// Branch if Zero set. If the zero flag is set, then add the relative
@@ -456,7 +454,7 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://obelisk.me.uk/6502/reference.html#BEQ
     fn beq(&mut self) -> u8 {
-        self.branch_on_flag(StatusFlag::Z, true)
+        self.branch_on_flag(CPUStatus::Z, true)
     }
 
     /// Bit test. Tests if one or more bits are set in a target memory location.
@@ -473,9 +471,9 @@ impl<'a> CPU<'a> {
     fn bit(&mut self) -> u8 {
         self.fetch();
 
-        self.set_status_flag(StatusFlag::Z, self.a & self.m == 0);
-        self.set_status_flag(StatusFlag::V, self.m & (1 << 6) > 0);
-        self.set_status_flag(StatusFlag::N, self.m & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.a & self.m == 0);
+        self.set_status_flag(CPUStatus::V, self.m & (1 << 6) > 0);
+        self.set_status_flag(CPUStatus::N, self.m & (1 << 7) > 0);
 
         0
     }
@@ -487,7 +485,7 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://obelisk.me.uk/6502/reference.html#BMI
     fn bmi(&mut self) -> u8 {
-        self.branch_on_flag(StatusFlag::N, true)
+        self.branch_on_flag(CPUStatus::N, true)
     }
 
     /// Branch if Zero clear. If the zero flag is clear, then add the relative
@@ -497,7 +495,7 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://obelisk.me.uk/6502/reference.html#BNE
     fn bne(&mut self) -> u8 {
-        self.branch_on_flag(StatusFlag::Z, false)
+        self.branch_on_flag(CPUStatus::Z, false)
     }
 
     /// Branch if Negative clear. If the negative flag is clear, then add the relative
@@ -507,7 +505,7 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://obelisk.me.uk/6502/reference.html#BPL
     fn bpl(&mut self) -> u8 {
-        self.branch_on_flag(StatusFlag::N, false)
+        self.branch_on_flag(CPUStatus::N, false)
     }
 
     /// Forces the generation of an Interrupt request. PC and S are pushed onto the
@@ -526,9 +524,9 @@ impl<'a> CPU<'a> {
         self.push_to_stack(self.p_ctr as u8);
 
         // Set the status flag byte before pushing to the stack, then reset to false.
-        self.set_status_flag(StatusFlag::B, true);
-        self.push_to_stack(self.stat);
-        self.set_status_flag(StatusFlag::B, false);
+        self.set_status_flag(CPUStatus::B, true);
+        self.push_to_stack(self.status.bits());
+        self.set_status_flag(CPUStatus::B, false);
 
         let lo = self.read(0xFFFE) as u16;
         let hi = self.read(0xFFFF) as u16;
@@ -544,7 +542,7 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://obelisk.me.uk/6502/reference.html#BVC
     fn bvc(&mut self) -> u8 {
-        self.branch_on_flag(StatusFlag::V, false)
+        self.branch_on_flag(CPUStatus::V, false)
     }
 
     /// Branch if Overflow set. If the overflow flag is clear, then add the relative
@@ -554,14 +552,14 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://obelisk.me.uk/6502/reference.html#BVS
     fn bvs(&mut self) -> u8 {
-        self.branch_on_flag(StatusFlag::V, true)
+        self.branch_on_flag(CPUStatus::V, true)
     }
 
     /// Clear Carry flag.
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/reference.html#CLC
     fn clc(&mut self) -> u8 {
-        self.set_status_flag(StatusFlag::C, false);
+        self.set_status_flag(CPUStatus::C, false);
 
         0
     }
@@ -575,7 +573,7 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/reference.html#CLD
     fn cld(&mut self) -> u8 {
-        self.set_status_flag(StatusFlag::D, false);
+        self.set_status_flag(CPUStatus::D, false);
 
         0
     }
@@ -584,7 +582,7 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/reference.html#CLI
     fn cli(&mut self) -> u8 {
-        self.set_status_flag(StatusFlag::I, false);
+        self.set_status_flag(CPUStatus::I, false);
 
         0
     }
@@ -593,7 +591,7 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/reference.html#CLV
     fn clv(&mut self) -> u8 {
-        self.set_status_flag(StatusFlag::V, false);
+        self.set_status_flag(CPUStatus::V, false);
 
         0
     }
@@ -612,9 +610,9 @@ impl<'a> CPU<'a> {
         self.fetch();
 
         let r = self.a - self.m;
-        self.set_status_flag(StatusFlag::C, self.a >= self.m);
-        self.set_status_flag(StatusFlag::Z, self.a == self.m);
-        self.set_status_flag(StatusFlag::N, r & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::C, self.a >= self.m);
+        self.set_status_flag(CPUStatus::Z, self.a == self.m);
+        self.set_status_flag(CPUStatus::N, r & (1 << 7) > 0);
 
         1
     }
@@ -633,9 +631,9 @@ impl<'a> CPU<'a> {
         self.fetch();
 
         let r = self.x - self.m;
-        self.set_status_flag(StatusFlag::C, self.x >= self.m);
-        self.set_status_flag(StatusFlag::Z, self.x == self.m);
-        self.set_status_flag(StatusFlag::N, r & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::C, self.x >= self.m);
+        self.set_status_flag(CPUStatus::Z, self.x == self.m);
+        self.set_status_flag(CPUStatus::N, r & (1 << 7) > 0);
 
         1
     }
@@ -654,9 +652,9 @@ impl<'a> CPU<'a> {
         self.fetch();
 
         let r = self.y - self.m;
-        self.set_status_flag(StatusFlag::C, self.y >= self.m);
-        self.set_status_flag(StatusFlag::Z, self.y == self.m);
-        self.set_status_flag(StatusFlag::N, r & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::C, self.y >= self.m);
+        self.set_status_flag(CPUStatus::Z, self.y == self.m);
+        self.set_status_flag(CPUStatus::N, r & (1 << 7) > 0);
 
         1
     }
@@ -675,8 +673,8 @@ impl<'a> CPU<'a> {
         self.m -= 1;
         self.write(self.addr, self.m);
 
-        self.set_status_flag(StatusFlag::Z, self.m == 0);
-        self.set_status_flag(StatusFlag::N, self.m & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.m == 0);
+        self.set_status_flag(CPUStatus::N, self.m & (1 << 7) > 0);
         
         0
     }
@@ -692,8 +690,8 @@ impl<'a> CPU<'a> {
     /// Reference: http://obelisk.me.uk/6502/reference.html#DEX
     fn dex(&mut self) -> u8 {
         self.x -= 1;
-        self.set_status_flag(StatusFlag::Z, self.x == 0);
-        self.set_status_flag(StatusFlag::N, self.x & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.x == 0);
+        self.set_status_flag(CPUStatus::N, self.x & (1 << 7) > 0);
 
         0
     }
@@ -709,8 +707,8 @@ impl<'a> CPU<'a> {
     /// Reference: http://obelisk.me.uk/6502/reference.html#DEY
     fn dey(&mut self) -> u8 {
         self.y -= 1;
-        self.set_status_flag(StatusFlag::Z, self.y == 0);
-        self.set_status_flag(StatusFlag::N, self.y & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.y == 0);
+        self.set_status_flag(CPUStatus::N, self.y & (1 << 7) > 0);
 
         0
     }
@@ -728,8 +726,8 @@ impl<'a> CPU<'a> {
         self.fetch();
 
         self.a ^= self.m;
-        self.set_status_flag(StatusFlag::Z, self.a == 0);
-        self.set_status_flag(StatusFlag::N, self.a & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.a == 0);
+        self.set_status_flag(CPUStatus::N, self.a & (1 << 7) > 0);
 
         1
     }
@@ -748,8 +746,8 @@ impl<'a> CPU<'a> {
         self.m += 1;
         self.write(self.addr, self.m);
 
-        self.set_status_flag(StatusFlag::Z, self.m == 0);
-        self.set_status_flag(StatusFlag::N, self.m & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.m == 0);
+        self.set_status_flag(CPUStatus::N, self.m & (1 << 7) > 0);
         
         0
     }
@@ -765,8 +763,8 @@ impl<'a> CPU<'a> {
     /// Reference: http://obelisk.me.uk/6502/reference.html#INX
     fn inx(&mut self) -> u8 {
         self.x += 1;
-        self.set_status_flag(StatusFlag::Z, self.x == 0);
-        self.set_status_flag(StatusFlag::N, self.x & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.x == 0);
+        self.set_status_flag(CPUStatus::N, self.x & (1 << 7) > 0);
 
         0
     }
@@ -782,8 +780,8 @@ impl<'a> CPU<'a> {
     /// Reference: http://obelisk.me.uk/6502/reference.html#INY
     fn iny(&mut self) -> u8 {
         self.y += 1;
-        self.set_status_flag(StatusFlag::Z, self.y == 0);
-        self.set_status_flag(StatusFlag::N, self.y & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.y == 0);
+        self.set_status_flag(CPUStatus::N, self.y & (1 << 7) > 0);
 
         0
     }
@@ -834,8 +832,8 @@ impl<'a> CPU<'a> {
         self.fetch();
 
         self.a = self.m;
-        self.set_status_flag(StatusFlag::Z, self.a == 0);
-        self.set_status_flag(StatusFlag::N, self.a & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.a == 0);
+        self.set_status_flag(CPUStatus::N, self.a & (1 << 7) > 0);
         
         1
     }
@@ -853,8 +851,8 @@ impl<'a> CPU<'a> {
         self.fetch();
 
         self.x = self.m;
-        self.set_status_flag(StatusFlag::Z, self.x == 0);
-        self.set_status_flag(StatusFlag::N, self.x & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.x == 0);
+        self.set_status_flag(CPUStatus::N, self.x & (1 << 7) > 0);
         
         1
     }
@@ -872,8 +870,8 @@ impl<'a> CPU<'a> {
         self.fetch();
 
         self.y = self.m;
-        self.set_status_flag(StatusFlag::Z, self.y == 0);
-        self.set_status_flag(StatusFlag::N, self.y & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.y == 0);
+        self.set_status_flag(CPUStatus::N, self.y & (1 << 7) > 0);
         
         1
     }
@@ -896,9 +894,9 @@ impl<'a> CPU<'a> {
         self.fetch();
 
         let shift = self.m >> 1;
-        self.set_status_flag(StatusFlag::C, self.m & 1 > 0);
-        self.set_status_flag(StatusFlag::Z, shift as u8 == 0);
-        self.set_status_flag(StatusFlag::N, shift & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::C, self.m & 1 > 0);
+        self.set_status_flag(CPUStatus::Z, shift as u8 == 0);
+        self.set_status_flag(CPUStatus::N, shift & (1 << 7) > 0);
 
         if self.addr_mode.unwrap_or(AddressingMode::IMP) == AddressingMode::IMP {
             self.a = shift;
@@ -933,8 +931,8 @@ impl<'a> CPU<'a> {
         self.fetch();
 
         self.a |= self.m;
-        self.set_status_flag(StatusFlag::Z, self.a == 0);
-        self.set_status_flag(StatusFlag::N, self.a & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.a == 0);
+        self.set_status_flag(CPUStatus::N, self.a & (1 << 7) > 0);
 
         1
     }
@@ -961,9 +959,9 @@ impl<'a> CPU<'a> {
     /// Reference: http://obelisk.me.uk/6502/reference.html#PHA
     /// 6502 Stack reference: https://wiki.nesdev.com/w/index.php/Stack
     fn php(&mut self) -> u8 {
-        self.set_status_flag(StatusFlag::B, true);
-        self.push_to_stack(self.stat);
-        self.set_status_flag(StatusFlag::B, false);
+        self.set_status_flag(CPUStatus::B, true);
+        self.push_to_stack(self.status.bits());
+        self.set_status_flag(CPUStatus::B, false);
 
         0
     }
@@ -978,8 +976,8 @@ impl<'a> CPU<'a> {
     /// 6502 Stack reference: https://wiki.nesdev.com/w/index.php/Stack
     fn pla(&mut self) -> u8 {
         self.a = self.pull_from_stack();
-        self.set_status_flag(StatusFlag::Z, self.a == 0);
-        self.set_status_flag(StatusFlag::N, self.a & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.a == 0);
+        self.set_status_flag(CPUStatus::N, self.a & (1 << 7) > 0);
 
         0
     }
@@ -996,8 +994,9 @@ impl<'a> CPU<'a> {
     /// Reference: http://obelisk.me.uk/6502/reference.html#PHA
     /// 6502 Stack reference: https://wiki.nesdev.com/w/index.php/Stack
     fn plp(&mut self) -> u8 {
-        self.stat = self.pull_from_stack();
-        self.set_status_flag(StatusFlag::B, false);
+        self.status = CPUStatus::from_bits(self.pull_from_stack())
+            .unwrap_or(CPUStatus::default());
+        self.set_status_flag(CPUStatus::B, false);
 
         0
     }
@@ -1014,10 +1013,10 @@ impl<'a> CPU<'a> {
     fn rol(&mut self) -> u8 {
         self.fetch();
 
-        let shift = self.m << 1 | self.get_status_flag(StatusFlag::C) as u8;
-        self.set_status_flag(StatusFlag::C, self.m & (1 << 7) > 0);
-        self.set_status_flag(StatusFlag::Z, shift == 0);
-        self.set_status_flag(StatusFlag::N, shift & (1 << 7) > 0);
+        let shift = (self.m << 1) | self.status.contains(CPUStatus::C) as u8;
+        self.set_status_flag(CPUStatus::C, self.m & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, shift == 0);
+        self.set_status_flag(CPUStatus::N, shift & (1 << 7) > 0);
         if self.addr_mode.unwrap_or(AddressingMode::IMP) == AddressingMode::IMP {
             self.a = shift;
         } else {
@@ -1039,10 +1038,10 @@ impl<'a> CPU<'a> {
     fn ror(&mut self) -> u8 {
         self.fetch();
 
-        let shift = self.m >> 1 | ((self.get_status_flag(StatusFlag::C) as u8) << 7);
-        self.set_status_flag(StatusFlag::C, self.m & 1 > 0);
-        self.set_status_flag(StatusFlag::Z, shift == 0);
-        self.set_status_flag(StatusFlag::N, shift & (1 << 7) > 0);
+        let shift = (self.m >> 1) | ((self.status.contains(CPUStatus::C) as u8) << 7);
+        self.set_status_flag(CPUStatus::C, self.m & 1 > 0);
+        self.set_status_flag(CPUStatus::Z, shift == 0);
+        self.set_status_flag(CPUStatus::N, shift & (1 << 7) > 0);
         if self.addr_mode.unwrap_or(AddressingMode::IMP) == AddressingMode::IMP {
             self.a = shift;
         } else {
@@ -1057,9 +1056,10 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/reference.html#RTI
     fn rti(&mut self) -> u8 {
-        self.stat = self.pull_from_stack();
-        self.set_status_flag(StatusFlag::B, false);
-        self.set_status_flag(StatusFlag::U, false); // Just in case.
+        self.status = CPUStatus::from_bits(self.pull_from_stack())
+            .unwrap_or(CPUStatus::default());
+        self.set_status_flag(CPUStatus::B, false);
+        self.set_status_flag(CPUStatus::U, false); // Just in case.
 
         let lo = self.pull_from_stack() as u16;
         let hi = self.pull_from_stack() as u16;
@@ -1130,16 +1130,16 @@ impl<'a> CPU<'a> {
         // Doing an xor here to make sure we don't flip anything beyond bit-7.
         let not_m = self.m as u16 ^ 0x00FF;
         let a = self.a as u16;
-        let c = self.get_status_flag(StatusFlag::C) as u16;
+        let c = self.status.contains(CPUStatus::C) as u16;
         
         let r = a + not_m + c;
-        self.set_status_flag(StatusFlag::C, r > 255);
-        self.set_status_flag(StatusFlag::Z, r == 0);
-        self.set_status_flag(StatusFlag::N, r & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::C, r > 255);
+        self.set_status_flag(CPUStatus::Z, r == 0);
+        self.set_status_flag(CPUStatus::N, r & (1 << 7) > 0);
 
         // See the documentation for the ADC instruction for an explanation
         // of this logic. Note that we se !M instead of M in the formula.
-        self.set_status_flag(StatusFlag::V, (a ^ r) & !(a ^ not_m) & (1 << 7) != 0);
+        self.set_status_flag(CPUStatus::V, (a ^ r) & !(a ^ not_m) & (1 << 7) != 0);
         self.a = r as u8;
 
         1
@@ -1149,7 +1149,7 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/reference.html#SEC
     fn sec(&mut self) -> u8 {
-        self.set_status_flag(StatusFlag::C, true);
+        self.set_status_flag(CPUStatus::C, true);
 
         0
     }
@@ -1158,7 +1158,7 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/reference.html#SED
     fn sed(&mut self) -> u8 {
-        self.set_status_flag(StatusFlag::D, true);
+        self.set_status_flag(CPUStatus::D, true);
 
         0
     }
@@ -1167,7 +1167,7 @@ impl<'a> CPU<'a> {
     /// 
     /// Reference: http://www.obelisk.me.uk/6502/reference.html#SEI
     fn sei(&mut self) -> u8 {
-        self.set_status_flag(StatusFlag::I, true);
+        self.set_status_flag(CPUStatus::I, true);
 
         0
     }
@@ -1222,8 +1222,8 @@ impl<'a> CPU<'a> {
     /// Reference: http://www.obelisk.me.uk/6502/reference.html#TAX
     fn tax(&mut self) -> u8 {
         self.x = self.a;
-        self.set_status_flag(StatusFlag::Z, self.x == 0);
-        self.set_status_flag(StatusFlag::N, self.x & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.x == 0);
+        self.set_status_flag(CPUStatus::N, self.x & (1 << 7) > 0);
 
         0
     }
@@ -1239,8 +1239,8 @@ impl<'a> CPU<'a> {
     /// Reference: http://www.obelisk.me.uk/6502/reference.html#TAY
     fn tay(&mut self) -> u8 {
         self.y = self.a;
-        self.set_status_flag(StatusFlag::Z, self.y == 0);
-        self.set_status_flag(StatusFlag::N, self.y & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.y == 0);
+        self.set_status_flag(CPUStatus::N, self.y & (1 << 7) > 0);
 
         0
     }
@@ -1256,8 +1256,8 @@ impl<'a> CPU<'a> {
     /// Reference: http://obelisk.me.uk/6502/reference.html#TSX
     fn tsx(&mut self) -> u8 {
         self.x = self.stk_ptr;
-        self.set_status_flag(StatusFlag::Z, self.x == 0);
-        self.set_status_flag(StatusFlag::N, self.x & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.x == 0);
+        self.set_status_flag(CPUStatus::N, self.x & (1 << 7) > 0);
 
         0
     }
@@ -1273,8 +1273,8 @@ impl<'a> CPU<'a> {
     /// Reference: http://www.obelisk.me.uk/6502/reference.html#TXA
     fn txa(&mut self) -> u8 {
         self.a = self.x;
-        self.set_status_flag(StatusFlag::Z, self.a == 0);
-        self.set_status_flag(StatusFlag::N, self.a & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.a == 0);
+        self.set_status_flag(CPUStatus::N, self.a & (1 << 7) > 0);
 
         0
     }
@@ -1303,8 +1303,8 @@ impl<'a> CPU<'a> {
     /// Reference: http://www.obelisk.me.uk/6502/reference.html#TYA
     fn tya(&mut self) -> u8 {
         self.a = self.y;
-        self.set_status_flag(StatusFlag::Z, self.a == 0);
-        self.set_status_flag(StatusFlag::N, self.a & (1 << 7) > 0);
+        self.set_status_flag(CPUStatus::Z, self.a == 0);
+        self.set_status_flag(CPUStatus::N, self.a & (1 << 7) > 0);
 
         0
     }
@@ -1361,10 +1361,10 @@ impl<'a> CPU<'a> {
         self.push_to_stack((self.p_ctr >> 8) as u8);
         self.push_to_stack(self.p_ctr as u8);
 
-        self.set_status_flag(StatusFlag::B, false);
-        self.set_status_flag(StatusFlag::U, true);
-        self.set_status_flag(StatusFlag::I, true);
-        self.push_to_stack(self.stat);
+        self.set_status_flag(CPUStatus::B, false);
+        self.set_status_flag(CPUStatus::U, true);
+        self.set_status_flag(CPUStatus::I, true);
+        self.push_to_stack(self.status.bits());
         
         self.addr = addr;
 
@@ -1373,18 +1373,13 @@ impl<'a> CPU<'a> {
         self.p_ctr = (hi << 8) | lo;
         self.cycles = 7;
     }
-
-    /// Retrieve the boolean value of a particular flag in the status code.
-    fn get_status_flag(&self, status_flag: StatusFlag) -> bool {
-        (self.stat & (status_flag as u8)) != 0
-    }
     
     /// Set the boolean value of a particular flag in the status code.
-    fn set_status_flag(&mut self, status_flag: StatusFlag, v: bool) {
+    fn set_status_flag(&mut self, status_flag: CPUStatus, v: bool) {
         if v {
-            self.stat |= status_flag as u8;
+            self.status |= status_flag;
         } else {
-            self.stat &= !(status_flag as u8);
+            self.status &= !status_flag;
         }
     }
 
@@ -1425,8 +1420,8 @@ impl<'a> CPU<'a> {
     }
 
     /// Short helper to generalize the Branch if X clear/set logic.
-    fn branch_on_flag(&mut self, flag: StatusFlag, v: bool) -> u8 {
-        if self.get_status_flag(flag) == v {
+    fn branch_on_flag(&mut self, flag: CPUStatus, v: bool) -> u8 {
+        if self.status.contains(flag) == v {
             self.add_relative_to_pc();
             1
         } else {
@@ -1811,13 +1806,13 @@ mod tests {
 
         let mut cpu = CPU::new(&mut bus);
         cpu.a = 0b10101010;
-        cpu.set_status_flag(StatusFlag::N, true);
+        cpu.set_status_flag(CPUStatus::N, true);
 
         let v = cpu.and();
         expect!(v).to(be_eq(1));
         expect!(cpu.a).to(be_eq(0b00000000));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -1827,15 +1822,15 @@ mod tests {
 
         let mut cpu = CPU::new(&mut bus);
         cpu.a = 0b11111111;
-        cpu.set_status_flag(StatusFlag::V, true);
-        cpu.set_status_flag(StatusFlag::N, true);
+        cpu.set_status_flag(CPUStatus::V, true);
+        cpu.set_status_flag(CPUStatus::N, true);
 
         let v = cpu.bit();
         expect!(v).to(be_eq(0));
         expect!(cpu.a).to(be_eq(0b11111111)); // unchanged
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::V)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::V)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -1845,13 +1840,13 @@ mod tests {
 
         let mut cpu = CPU::new(&mut bus);
         cpu.a = 0b11111111;
-        cpu.set_status_flag(StatusFlag::N, true);
+        cpu.set_status_flag(CPUStatus::N, true);
 
         let v = cpu.eor();
         expect!(v).to(be_eq(1));
         expect!(cpu.a).to(be_eq(0b00000000));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -1861,13 +1856,13 @@ mod tests {
 
         let mut cpu = CPU::new(&mut bus);
         cpu.a = 0b00000000;
-        cpu.set_status_flag(StatusFlag::N, true);
+        cpu.set_status_flag(CPUStatus::N, true);
 
         let v = cpu.ora();
         expect!(v).to(be_eq(1));
         expect!(cpu.a).to(be_eq(0b00000000));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -1898,8 +1893,8 @@ mod tests {
         let v = cpu.tax();
         expect!(v).to(be_eq(0));
         expect!(cpu.x).to(be_eq(0x00));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -1912,8 +1907,8 @@ mod tests {
         let v = cpu.tay();
         expect!(v).to(be_eq(0));
         expect!(cpu.y).to(be_eq(0x00));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -1926,8 +1921,8 @@ mod tests {
         let v = cpu.txa();
         expect!(v).to(be_eq(0));
         expect!(cpu.a).to(be_eq(0x00));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
     
     #[test]
@@ -1940,8 +1935,8 @@ mod tests {
         let v = cpu.tya();
         expect!(v).to(be_eq(0));
         expect!(cpu.a).to(be_eq(0x00));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
     
     #[test]
@@ -1956,8 +1951,8 @@ mod tests {
         let v = cpu.lda();
         expect!(v).to(be_eq(1));
         expect!(cpu.a).to(be_eq(0x00));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -1972,8 +1967,8 @@ mod tests {
         let v = cpu.ldx();
         expect!(v).to(be_eq(1));
         expect!(cpu.x).to(be_eq(0x00));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -1988,8 +1983,8 @@ mod tests {
         let v = cpu.ldy();
         expect!(v).to(be_eq(1));
         expect!(cpu.y).to(be_eq(0x00));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -2068,12 +2063,12 @@ mod tests {
         let mut bus = Bus::new();
         let mut cpu = CPU::new(&mut bus);
         cpu.reset(); // stack pointer is set to 0xFD here
-        cpu.stat = 0b11101111;
+        cpu.status = CPUStatus::from_bits(0b10101010).unwrap_or(CPUStatus::X);
 
         let v = cpu.php();
         expect!(v).to(be_eq(0));
         expect!(cpu.stk_ptr).to(be_eq(0xFC));
-        expect!(cpu.read(0x01FD)).to(be_eq(cpu.stat + (1 << 4))); // B is always set
+        expect!(cpu.read(0x01FD)).to(be_eq(cpu.status.bits() + (1 << 4))); // B is always set
     }
 
     #[test]
@@ -2087,8 +2082,8 @@ mod tests {
         expect!(v).to(be_eq(0));
         expect!(cpu.stk_ptr).to(be_eq(0xFD)); // came back to 0xFD after pull
         expect!(cpu.read(0x01FD)).to(be_eq(cpu.a));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_true());
     }
 
     #[test]
@@ -2101,7 +2096,7 @@ mod tests {
         let v = cpu.plp();
         expect!(v).to(be_eq(0));
         expect!(cpu.stk_ptr).to(be_eq(0xFD)); // came back to 0xFD after pull
-        expect!(cpu.read(0x01FD)).to(be_eq(cpu.stat + (1 << 4)));
+        expect!(cpu.read(0x01FD)).to(be_eq(cpu.status.bits() + (1 << 4)));
     }
 
     #[test]
@@ -2115,8 +2110,8 @@ mod tests {
         let v = cpu.inc();
         expect!(v).to(be_eq(0));
         expect!(cpu.m).to(be_eq(0x80));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_true());
     }
 
     #[test]
@@ -2128,8 +2123,8 @@ mod tests {
         let v = cpu.inx();
         expect!(v).to(be_eq(0));
         expect!(cpu.x).to(be_eq(0x80));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_true());
     }
 
     #[test]
@@ -2141,8 +2136,8 @@ mod tests {
         let v = cpu.iny();
         expect!(v).to(be_eq(0));
         expect!(cpu.y).to(be_eq(0x80));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_true());
     }
 
     #[test]
@@ -2156,8 +2151,8 @@ mod tests {
         let v = cpu.dec();
         expect!(v).to(be_eq(0));
         expect!(cpu.m).to(be_eq(0x7F));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -2169,8 +2164,8 @@ mod tests {
         let v = cpu.dex();
         expect!(v).to(be_eq(0));
         expect!(cpu.x).to(be_eq(0x7F));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -2182,8 +2177,8 @@ mod tests {
         let v = cpu.dey();
         expect!(v).to(be_eq(0));
         expect!(cpu.y).to(be_eq(0x7F));
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -2197,9 +2192,9 @@ mod tests {
         let v = cpu.asl();
         expect!(v).to(be_eq(0));
         expect!(cpu.read(0x0000)).to(be_eq(0b01010100));
-        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::C)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -2213,9 +2208,9 @@ mod tests {
         let v = cpu.asl();
         expect!(v).to(be_eq(0));
         expect!(cpu.a).to(be_eq(0b01010100));
-        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::C)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -2229,9 +2224,9 @@ mod tests {
         let v = cpu.lsr();
         expect!(v).to(be_eq(0));
         expect!(cpu.read(0x0000)).to(be_eq(0b01010101));
-        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::C)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -2245,9 +2240,9 @@ mod tests {
         let v = cpu.lsr();
         expect!(v).to(be_eq(0));
         expect!(cpu.a).to(be_eq(0b01010101));
-        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::C)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -2256,15 +2251,15 @@ mod tests {
         bus.write(0x0000, 0b10101010);
 
         let mut cpu = CPU::new(&mut bus);
-        cpu.set_status_flag(StatusFlag::C, true);
+        cpu.set_status_flag(CPUStatus::C, true);
         cpu.addr_mode = Some(AddressingMode::ABS);
 
         let v = cpu.rol();
         expect!(v).to(be_eq(0));
         expect!(cpu.read(0x0000)).to(be_eq(0b01010101));
-        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::C)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -2273,15 +2268,15 @@ mod tests {
         let mut cpu = CPU::new(&mut bus);
         cpu.a = 0b10101010;
         cpu.m = 0b10101010;
-        cpu.set_status_flag(StatusFlag::C, true);
+        cpu.set_status_flag(CPUStatus::C, true);
         cpu.addr_mode = Some(AddressingMode::IMP);
 
         let v = cpu.rol();
         expect!(v).to(be_eq(0));
         expect!(cpu.a).to(be_eq(0b01010101));
-        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::C)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -2290,15 +2285,15 @@ mod tests {
         bus.write(0x0000, 0b10101010);
 
         let mut cpu = CPU::new(&mut bus);
-        cpu.set_status_flag(StatusFlag::C, true);
+        cpu.set_status_flag(CPUStatus::C, true);
         cpu.addr_mode = Some(AddressingMode::ABS);
 
         let v = cpu.ror();
         expect!(v).to(be_eq(0));
         expect!(cpu.read(0x0000)).to(be_eq(0b11010101));
-        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::C)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_true());
     }
 
     #[test]
@@ -2307,15 +2302,15 @@ mod tests {
         let mut cpu = CPU::new(&mut bus);
         cpu.a = 0b10101010;
         cpu.m = 0b10101010;
-        cpu.set_status_flag(StatusFlag::C, true);
+        cpu.set_status_flag(CPUStatus::C, true);
         cpu.addr_mode = Some(AddressingMode::IMP);
 
         let v = cpu.ror();
         expect!(v).to(be_eq(0));
         expect!(cpu.a).to(be_eq(0b11010101));
-        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::C)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_true());
     }
 
     #[test]
@@ -2393,7 +2388,7 @@ mod tests {
         let mut cpu = CPU::new(&mut bus);
         cpu.addr_rel = 0x0010;
         cpu.p_ctr = 0x0000;
-        cpu.set_status_flag(StatusFlag::C, false);
+        cpu.set_status_flag(CPUStatus::C, false);
 
         let v = cpu.bcc();
         expect!(v).to(be_eq(1));
@@ -2406,7 +2401,7 @@ mod tests {
         let mut cpu = CPU::new(&mut bus);
         cpu.addr_rel = 0x0010;
         cpu.p_ctr = 0x0000;
-        cpu.set_status_flag(StatusFlag::C, true);
+        cpu.set_status_flag(CPUStatus::C, true);
 
         let v = cpu.bcs();
         expect!(v).to(be_eq(1));
@@ -2419,7 +2414,7 @@ mod tests {
         let mut cpu = CPU::new(&mut bus);
         cpu.addr_rel = 0x0010;
         cpu.p_ctr = 0x0000;
-        cpu.set_status_flag(StatusFlag::Z, true);
+        cpu.set_status_flag(CPUStatus::Z, true);
 
         let v = cpu.beq();
         expect!(v).to(be_eq(1));
@@ -2432,7 +2427,7 @@ mod tests {
         let mut cpu = CPU::new(&mut bus);
         cpu.addr_rel = 0x0010;
         cpu.p_ctr = 0x0000;
-        cpu.set_status_flag(StatusFlag::N, true);
+        cpu.set_status_flag(CPUStatus::N, true);
 
         let v = cpu.bmi();
         expect!(v).to(be_eq(1));
@@ -2445,7 +2440,7 @@ mod tests {
         let mut cpu = CPU::new(&mut bus);
         cpu.addr_rel = 0x0010;
         cpu.p_ctr = 0x0000;
-        cpu.set_status_flag(StatusFlag::Z, false);
+        cpu.set_status_flag(CPUStatus::Z, false);
 
         let v = cpu.bne();
         expect!(v).to(be_eq(1));
@@ -2458,7 +2453,7 @@ mod tests {
         let mut cpu = CPU::new(&mut bus);
         cpu.addr_rel = 0x0010;
         cpu.p_ctr = 0x0000;
-        cpu.set_status_flag(StatusFlag::N, false);
+        cpu.set_status_flag(CPUStatus::N, false);
 
         let v = cpu.bpl();
         expect!(v).to(be_eq(1));
@@ -2471,7 +2466,7 @@ mod tests {
         let mut cpu = CPU::new(&mut bus);
         cpu.addr_rel = 0x0010;
         cpu.p_ctr = 0x0000;
-        cpu.set_status_flag(StatusFlag::V, false);
+        cpu.set_status_flag(CPUStatus::V, false);
 
         let v = cpu.bvc();
         expect!(v).to(be_eq(1));
@@ -2484,7 +2479,7 @@ mod tests {
         let mut cpu = CPU::new(&mut bus);
         cpu.addr_rel = 0x0010;
         cpu.p_ctr = 0x0000;
-        cpu.set_status_flag(StatusFlag::V, true);
+        cpu.set_status_flag(CPUStatus::V, true);
 
         let v = cpu.bvs();
         expect!(v).to(be_eq(1));
@@ -2499,7 +2494,9 @@ mod tests {
 
         let mut cpu = CPU::new(&mut bus);
         cpu.p_ctr = 0xDDFE;
-        cpu.stat = 0b10101010; // B is not set, but will be in stack
+
+        // B is not set, but will be in the stack
+        cpu.status = CPUStatus::from_bits(0b10101010).unwrap_or(CPUStatus::X);
 
         let v = cpu.brk();
         expect!(v).to(be_eq(0));
@@ -2520,7 +2517,7 @@ mod tests {
         let v = cpu.rti();
         expect!(v).to(be_eq(0));
         expect!(cpu.p_ctr).to(be_eq(0xDDFE));
-        expect!(cpu.stat).to(be_eq(0b10001010)); // B and U not set
+        expect!(cpu.status.bits()).to(be_eq(0b10001010)); // B and U not set
     }
 
     #[test]
@@ -2532,9 +2529,9 @@ mod tests {
 
         let v = cpu.cmp();
         expect!(v).to(be_eq(1));
-        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::C)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -2546,9 +2543,9 @@ mod tests {
 
         let v = cpu.cpx();
         expect!(v).to(be_eq(1));
-        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::C)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -2560,9 +2557,9 @@ mod tests {
 
         let v = cpu.cpy();
         expect!(v).to(be_eq(1));
-        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::C)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -2572,15 +2569,15 @@ mod tests {
         cpu.addr_mode = Some(AddressingMode::IMP);
         cpu.a = 0b11000000; // 192
         cpu.m = 0b01100010; // 98
-        cpu.set_status_flag(StatusFlag::C, true);
+        cpu.set_status_flag(CPUStatus::C, true);
 
         let v = cpu.adc();
         expect!(v).to(be_eq(1));
         expect!(cpu.a).to(be_eq(0b00100011));
-        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::V)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::C)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::V)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 
     #[test]
@@ -2590,14 +2587,14 @@ mod tests {
         cpu.addr_mode = Some(AddressingMode::IMP);
         cpu.a = 0b11000000; // 192
         cpu.m = 0b01100010; // 98
-        cpu.set_status_flag(StatusFlag::C, true);
+        cpu.set_status_flag(CPUStatus::C, true);
 
         let v = cpu.sbc();
         expect!(v).to(be_eq(1));
         expect!(cpu.a).to(be_eq(0b01011110));
-        expect!(cpu.get_status_flag(StatusFlag::C)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::Z)).to(be_false());
-        expect!(cpu.get_status_flag(StatusFlag::V)).to(be_true());
-        expect!(cpu.get_status_flag(StatusFlag::N)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::C)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::Z)).to(be_false());
+        expect!(cpu.status.contains(CPUStatus::V)).to(be_true());
+        expect!(cpu.status.contains(CPUStatus::N)).to(be_false());
     }
 }

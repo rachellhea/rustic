@@ -95,7 +95,6 @@ fn reset() {
     expect!(cpu.x).to(be_eq(0x00));
     expect!(cpu.y).to(be_eq(0x00));
     expect!(cpu.stk_ptr).to(be_eq(0xFD));
-    expect!(cpu.stat).to(be_eq(0b00100000)); // Only U is set (Unused)
 
     // Program counter should be set to the value that was stored at the two
     // successive bytes 0xFFFC and 0xFFFD (the latter being its higher byte).
